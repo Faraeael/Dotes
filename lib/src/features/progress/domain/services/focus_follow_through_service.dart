@@ -9,10 +9,17 @@ class FocusFollowThroughService {
     required CoachingCheckpoint previousCheckpoint,
     required CoachingCheckpointSample currentSample,
   }) {
+    final checkpointSavedAt = previousCheckpoint.savedAt;
+    final previousFocusLabel = _previousFocusLabel(previousCheckpoint);
+    final comparisonLabel = _comparisonLabel(previousCheckpoint);
+
     if (previousCheckpoint.sample.matchesAnalyzed < 5 ||
         currentSample.matchesAnalyzed < 5) {
-      return const FocusFollowThroughCheck.waiting(
+      return FocusFollowThroughCheck.waiting(
         fallbackMessage: 'Need a bigger block before judging follow-through.',
+        checkpointSavedAt: checkpointSavedAt,
+        previousFocusLabel: previousFocusLabel,
+        comparisonLabel: comparisonLabel,
       );
     }
 
@@ -21,12 +28,18 @@ class FocusFollowThroughService {
         return _judgeDeathsFocus(
           currentSample.averageDeaths,
           previousCheckpoint.sample.averageDeaths,
+          checkpointSavedAt: checkpointSavedAt,
+          previousFocusLabel: previousFocusLabel,
+          comparisonLabel: comparisonLabel,
         );
       case CoachingInsightType.heroPoolSpread:
       case CoachingInsightType.comfortHeroDependence:
         return _judgeHeroPoolFocus(
           currentSample.uniqueHeroesPlayed,
           previousCheckpoint.sample.uniqueHeroesPlayed,
+          checkpointSavedAt: checkpointSavedAt,
+          previousFocusLabel: previousFocusLabel,
+          comparisonLabel: comparisonLabel,
         );
       case CoachingInsightType.specializationRecommendation:
       case CoachingInsightType.weakRecentTrend:
@@ -35,6 +48,9 @@ class FocusFollowThroughService {
         return _judgeStableBlockFocus(
           currentSample: currentSample,
           previousSample: previousCheckpoint.sample,
+          checkpointSavedAt: checkpointSavedAt,
+          previousFocusLabel: previousFocusLabel,
+          comparisonLabel: comparisonLabel,
         );
     }
   }
@@ -42,54 +58,85 @@ class FocusFollowThroughService {
   FocusFollowThroughCheck _judgeDeathsFocus(
     double currentAverageDeaths,
     double previousAverageDeaths,
+    {
+    required DateTime checkpointSavedAt,
+    required String previousFocusLabel,
+    required String comparisonLabel,
+  }
   ) {
     if (currentAverageDeaths <= previousAverageDeaths - 1) {
-      return const FocusFollowThroughCheck.ready(
+      return FocusFollowThroughCheck.ready(
         status: FocusFollowThroughStatus.onTrack,
         detail: 'Average deaths are down since the last checkpoint.',
+        checkpointSavedAt: checkpointSavedAt,
+        previousFocusLabel: previousFocusLabel,
+        comparisonLabel: comparisonLabel,
       );
     }
 
     if (currentAverageDeaths >= previousAverageDeaths + 1) {
-      return const FocusFollowThroughCheck.ready(
+      return FocusFollowThroughCheck.ready(
         status: FocusFollowThroughStatus.offTrack,
         detail: 'Average deaths are up since the last checkpoint.',
+        checkpointSavedAt: checkpointSavedAt,
+        previousFocusLabel: previousFocusLabel,
+        comparisonLabel: comparisonLabel,
       );
     }
 
-    return const FocusFollowThroughCheck.ready(
-        status: FocusFollowThroughStatus.mixed,
-        detail: 'Average deaths look mostly flat since the last checkpoint.',
-      );
+    return FocusFollowThroughCheck.ready(
+      status: FocusFollowThroughStatus.mixed,
+      detail: 'Average deaths look mostly flat since the last checkpoint.',
+      checkpointSavedAt: checkpointSavedAt,
+      previousFocusLabel: previousFocusLabel,
+      comparisonLabel: comparisonLabel,
+    );
   }
 
   FocusFollowThroughCheck _judgeHeroPoolFocus(
     int currentUniqueHeroes,
     int previousUniqueHeroes,
+    {
+    required DateTime checkpointSavedAt,
+    required String previousFocusLabel,
+    required String comparisonLabel,
+  }
   ) {
     if (currentUniqueHeroes < previousUniqueHeroes) {
-      return const FocusFollowThroughCheck.ready(
+      return FocusFollowThroughCheck.ready(
         status: FocusFollowThroughStatus.onTrack,
         detail: 'Hero usage is narrower than the last checkpoint.',
+        checkpointSavedAt: checkpointSavedAt,
+        previousFocusLabel: previousFocusLabel,
+        comparisonLabel: comparisonLabel,
       );
     }
 
     if (currentUniqueHeroes > previousUniqueHeroes) {
-      return const FocusFollowThroughCheck.ready(
+      return FocusFollowThroughCheck.ready(
         status: FocusFollowThroughStatus.offTrack,
         detail: 'Hero usage is wider than the last checkpoint.',
+        checkpointSavedAt: checkpointSavedAt,
+        previousFocusLabel: previousFocusLabel,
+        comparisonLabel: comparisonLabel,
       );
     }
 
-    return const FocusFollowThroughCheck.ready(
-        status: FocusFollowThroughStatus.mixed,
-        detail: 'Hero usage looks steady since the last checkpoint.',
-      );
+    return FocusFollowThroughCheck.ready(
+      status: FocusFollowThroughStatus.mixed,
+      detail: 'Hero usage looks steady since the last checkpoint.',
+      checkpointSavedAt: checkpointSavedAt,
+      previousFocusLabel: previousFocusLabel,
+      comparisonLabel: comparisonLabel,
+    );
   }
 
   FocusFollowThroughCheck _judgeStableBlockFocus({
     required CoachingCheckpointSample currentSample,
     required CoachingCheckpointSample previousSample,
+    required DateTime checkpointSavedAt,
+    required String previousFocusLabel,
+    required String comparisonLabel,
   }) {
     final roleSignal = _roleConsistencySignal(
       currentSample,
@@ -109,6 +156,9 @@ class FocusFollowThroughService {
           roleSignal: roleSignal,
           onTrack: true,
         ),
+        checkpointSavedAt: checkpointSavedAt,
+        previousFocusLabel: previousFocusLabel,
+        comparisonLabel: comparisonLabel,
       );
     }
 
@@ -120,6 +170,9 @@ class FocusFollowThroughService {
           roleSignal: roleSignal,
           onTrack: false,
         ),
+        checkpointSavedAt: checkpointSavedAt,
+        previousFocusLabel: previousFocusLabel,
+        comparisonLabel: comparisonLabel,
       );
     }
 
@@ -129,7 +182,46 @@ class FocusFollowThroughService {
         heroPoolDirection: heroPoolDirection,
         roleSignal: roleSignal,
       ),
+      checkpointSavedAt: checkpointSavedAt,
+      previousFocusLabel: previousFocusLabel,
+      comparisonLabel: comparisonLabel,
     );
+  }
+
+  String _previousFocusLabel(CoachingCheckpoint checkpoint) {
+    final label = checkpoint.focusSourceLabel.trim();
+    if (label.isNotEmpty) {
+      return label;
+    }
+
+    return switch (checkpoint.topInsightType) {
+      CoachingInsightType.earlyDeathRisk => 'Early death risk',
+      CoachingInsightType.heroPoolSpread => 'Hero pool spread',
+      CoachingInsightType.comfortHeroDependence => 'Comfort hero dependence',
+      CoachingInsightType.weakRecentTrend => 'Weak recent trend',
+      CoachingInsightType.limitedConfidence => 'Limited confidence',
+      CoachingInsightType.specializationRecommendation =>
+        'Specialization recommendation',
+      null => 'Saved coaching focus',
+    };
+  }
+
+  String _comparisonLabel(CoachingCheckpoint checkpoint) {
+    return switch (checkpoint.topInsightType) {
+      CoachingInsightType.earlyDeathRisk =>
+        'Compared against your last saved focus on reducing deaths.',
+      CoachingInsightType.heroPoolSpread =>
+        'Compared against your last saved focus on narrowing your hero pool.',
+      CoachingInsightType.comfortHeroDependence =>
+        'Compared against your last saved focus on leaning into your comfort heroes.',
+      CoachingInsightType.weakRecentTrend =>
+        'Compared against your last saved focus on staying on one role and a stable hero block.',
+      CoachingInsightType.specializationRecommendation =>
+        'Compared against your last saved focus on narrowing to one role and a small hero block.',
+      CoachingInsightType.limitedConfidence =>
+        'Compared against your last saved focus on building a clearer sample before judging results.',
+      null => 'Compared against your last saved coaching focus.',
+    };
   }
 
   _RoleConsistencySignal _roleConsistencySignal(
@@ -188,6 +280,10 @@ class FocusFollowThroughService {
     }
 
     if (heroPoolDirection == _HeroPoolDirection.wider) {
+      if (roleSignal == _RoleConsistencySignal.negative) {
+        return 'Since the last checkpoint, the sample is broader on heroes and less consistent on role pattern.';
+      }
+
       return 'The sample is broader than the last checkpoint focus asked for.';
     }
 

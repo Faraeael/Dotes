@@ -12,12 +12,18 @@ void main() {
       final followThroughCheck = service.build(
         previousCheckpoint: _checkpoint(
           topInsightType: CoachingInsightType.earlyDeathRisk,
+          focusSourceLabel: 'Early death risk',
           averageDeaths: 7.4,
         ),
         currentSample: _sample(averageDeaths: 5.8),
       );
 
       expect(followThroughCheck.status, FocusFollowThroughStatus.onTrack);
+      expect(followThroughCheck.previousFocusLabel, 'Early death risk');
+      expect(
+        followThroughCheck.comparisonLabel,
+        'Compared against your last saved focus on reducing deaths.',
+      );
       expect(
         followThroughCheck.detail,
         'Average deaths are down since the last checkpoint.',
@@ -28,12 +34,18 @@ void main() {
       final followThroughCheck = service.build(
         previousCheckpoint: _checkpoint(
           topInsightType: CoachingInsightType.heroPoolSpread,
+          focusSourceLabel: 'Hero pool spread',
           uniqueHeroesPlayed: 4,
         ),
         currentSample: _sample(uniqueHeroesPlayed: 4),
       );
 
       expect(followThroughCheck.status, FocusFollowThroughStatus.mixed);
+      expect(followThroughCheck.previousFocusLabel, 'Hero pool spread');
+      expect(
+        followThroughCheck.comparisonLabel,
+        'Compared against your last saved focus on narrowing your hero pool.',
+      );
       expect(
         followThroughCheck.detail,
         'Hero usage looks steady since the last checkpoint.',
@@ -44,6 +56,7 @@ void main() {
       final followThroughCheck = service.build(
         previousCheckpoint: _checkpoint(
           topInsightType: CoachingInsightType.specializationRecommendation,
+          focusSourceLabel: 'Specialization recommendation',
           uniqueHeroesPlayed: 3,
           primaryRoleKey: 'carry',
           hasClearRoleEstimate: true,
@@ -56,6 +69,11 @@ void main() {
       );
 
       expect(followThroughCheck.status, FocusFollowThroughStatus.offTrack);
+      expect(followThroughCheck.previousFocusLabel, 'Specialization recommendation');
+      expect(
+        followThroughCheck.comparisonLabel,
+        'Compared against your last saved focus on narrowing to one role and a small hero block.',
+      );
       expect(
         followThroughCheck.detail,
         'Since the last checkpoint, the sample is broader on heroes and less consistent on role pattern.',
@@ -64,11 +82,20 @@ void main() {
 
     test('returns a calm fallback when the checkpoint sample is too small', () {
       final followThroughCheck = service.build(
-        previousCheckpoint: _checkpoint(matchesAnalyzed: 4),
+        previousCheckpoint: _checkpoint(
+          matchesAnalyzed: 4,
+          topInsightType: CoachingInsightType.limitedConfidence,
+          focusSourceLabel: 'Limited confidence',
+        ),
         currentSample: _sample(matchesAnalyzed: 10),
       );
 
       expect(followThroughCheck.isReady, isFalse);
+      expect(followThroughCheck.previousFocusLabel, 'Limited confidence');
+      expect(
+        followThroughCheck.comparisonLabel,
+        'Compared against your last saved focus on building a clearer sample before judging results.',
+      );
       expect(
         followThroughCheck.fallbackMessage,
         'Need a bigger block before judging follow-through.',
@@ -79,6 +106,7 @@ void main() {
 
 CoachingCheckpoint _checkpoint({
   CoachingInsightType? topInsightType,
+  String focusSourceLabel = 'Focus source',
   int matchesAnalyzed = 10,
   int uniqueHeroesPlayed = 5,
   double averageDeaths = 6.5,
@@ -89,7 +117,7 @@ CoachingCheckpoint _checkpoint({
     accountId: 86745912,
     savedAt: DateTime.utc(2025, 3, 21),
     focusAction: 'Focus action',
-    focusSourceLabel: 'Focus source',
+    focusSourceLabel: focusSourceLabel,
     topInsightType: topInsightType,
     sample: CoachingCheckpointSample(
       matchesAnalyzed: matchesAnalyzed,
