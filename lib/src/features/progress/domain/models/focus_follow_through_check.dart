@@ -22,8 +22,8 @@ class FocusFollowThroughCheck {
     this.checkpointSavedAt,
     this.previousFocusLabel,
     this.comparisonLabel,
-  })  : status = null,
-        detail = null;
+  }) : status = null,
+       detail = null;
 
   final FocusFollowThroughStatus? status;
   final String? detail;
@@ -33,6 +33,18 @@ class FocusFollowThroughCheck {
   final String? comparisonLabel;
 
   bool get isReady => status != null;
+
+  String? get statusLabel {
+    if (status != null) {
+      return status!.label;
+    }
+
+    if (hasCheckpointContext) {
+      return 'Waiting';
+    }
+
+    return null;
+  }
 
   bool get hasCheckpointContext =>
       checkpointSavedAt != null &&

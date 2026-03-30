@@ -23,28 +23,30 @@ class CheckpointFollowThroughPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            followThroughCheck.isReady
-                ? 'Since last checkpoint: ${followThroughCheck.status!.label}'
-                : 'Since last checkpoint',
-            style: theme.textTheme.titleSmall,
-          ),
+          Text('Since last checkpoint', style: theme.textTheme.titleSmall),
           if (followThroughCheck.hasCheckpointContext) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Saved ${_formatTimestamp(followThroughCheck.checkpointSavedAt!)}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _ContextPill(
+                  label: 'Saved',
+                  value: _formatTimestamp(
+                    followThroughCheck.checkpointSavedAt!,
+                  ),
+                ),
+                _ContextPill(
+                  label: 'Focus',
+                  value: followThroughCheck.previousFocusLabel!,
+                ),
+                _ContextPill(
+                  label: 'Status',
+                  value: followThroughCheck.statusLabel!,
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              'Previous focus: ${followThroughCheck.previousFocusLabel!}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               followThroughCheck.comparisonLabel!,
               style: theme.textTheme.bodySmall?.copyWith(
@@ -52,13 +54,13 @@ class CheckpointFollowThroughPanel extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             followThroughCheck.isReady
                 ? followThroughCheck.detail!
                 : followThroughCheck.fallbackMessage!,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+              color: theme.colorScheme.onSurface,
             ),
           ),
         ],
@@ -78,6 +80,32 @@ class CheckpointFollowThroughPanel extends StatelessWidget {
     final meridiem = local.hour >= 12 ? 'PM' : 'AM';
 
     return '$month ${local.day}, ${local.year} at $hour:$minute $meridiem';
+  }
+}
+
+class _ContextPill extends StatelessWidget {
+  const _ContextPill({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$label: $value',
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
   }
 }
 

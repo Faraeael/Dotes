@@ -26,20 +26,66 @@ void main() {
 
       await repository.saveDraft(draft);
       final loadedCheckpoint = await repository.loadForAccount(86745912);
+      final history = await repository.loadHistoryForAccount(86745912);
 
       expect(loadedCheckpoint, isNotNull);
       expect(loadedCheckpoint!.accountId, 86745912);
       expect(loadedCheckpoint.focusAction, draft.focusAction);
       expect(loadedCheckpoint.topInsightType, CoachingInsightType.earlyDeathRisk);
+      expect(loadedCheckpoint.focusHeroBlock, isNotNull);
+      expect(loadedCheckpoint.focusHeroBlock!.heroIds, [28, 129]);
+      expect(loadedCheckpoint.focusHeroBlock!.heroLabels, ['Slardar', 'Mars']);
       expect(loadedCheckpoint.sample.averageDeaths, 7.2);
+      expect(loadedCheckpoint.sample.recentMatchesWindow, hasLength(5));
+      expect(history, hasLength(1));
     });
 
     test('does not reuse another account checkpoint', () async {
       await repository.saveDraft(_draft(accountId: 86745912));
 
       final otherCheckpoint = await repository.loadForAccount(2222);
+      final otherHistory = await repository.loadHistoryForAccount(2222);
 
       expect(otherCheckpoint, isNull);
+      expect(otherHistory, isEmpty);
+    });
+
+    test('stores multiple checkpoints for the same account in recency order', () async {
+      await repository.saveDraft(
+        _draft(
+          accountId: 86745912,
+          focusAction: 'Old focus',
+        ),
+      );
+      await repository.saveDraft(
+        _draft(
+          accountId: 86745912,
+          focusAction: 'New focus',
+        ),
+      );
+
+      final history = await repository.loadHistoryForAccount(86745912);
+
+      expect(history, hasLength(2));
+      expect(history.first.focusAction, 'New focus');
+      expect(history.last.focusAction, 'Old focus');
+    });
+
+    test('keeps histories separate for different accounts', () async {
+      await repository.saveDraft(
+        _draft(accountId: 86745912, focusAction: 'Account one'),
+      );
+      await repository.saveDraft(
+        _draft(accountId: 2222, focusAction: 'Account two'),
+      );
+
+      final firstHistory = await repository.loadHistoryForAccount(86745912);
+      final secondHistory = await repository.loadHistoryForAccount(2222);
+
+      expect(firstHistory, hasLength(1));
+      expect(firstHistory.first.focusAction, 'Account one');
+      expect(secondHistory, hasLength(1));
+      expect(secondHistory.first.focusAction, 'Account two');
     });
   });
 }
@@ -58,12 +104,21 @@ class InMemoryCheckpointLocalStore implements CheckpointLocalStore {
   }
 }
 
-CoachingCheckpointDraft _draft({required int accountId}) {
+CoachingCheckpointDraft _draft({
+  required int accountId,
+  String focusAction = 'Keep deaths to 6 or fewer in each of the next 5 games.',
+}) {
   return CoachingCheckpointDraft(
     accountId: accountId,
-    focusAction: 'Keep deaths to 6 or fewer in each of the next 5 games.',
+    focusAction: focusAction,
     focusSourceLabel: 'Early death risk',
     topInsightType: CoachingInsightType.earlyDeathRisk,
+    focusHeroBlock: const CoachingCheckpointHeroBlock(
+      heroIds: [28, 129],
+      heroLabels: ['Slardar', 'Mars'],
+      wins: 4,
+      losses: 1,
+    ),
     sample: const CoachingCheckpointSample(
       matchesAnalyzed: 10,
       wins: 4,
@@ -75,6 +130,13 @@ CoachingCheckpointDraft _draft({required int accountId}) {
       roleEstimateStrengthLabel: 'Moderate estimate',
       hasClearRoleEstimate: true,
       primaryRoleKey: 'carry',
+      recentMatchesWindow: [
+        CoachingCheckpointMatchSummary(heroId: 28, didWin: true),
+        CoachingCheckpointMatchSummary(heroId: 129, didWin: true),
+        CoachingCheckpointMatchSummary(heroId: 28, didWin: false),
+        CoachingCheckpointMatchSummary(heroId: 53, didWin: false),
+        CoachingCheckpointMatchSummary(heroId: 129, didWin: true),
+      ],
     ),
   );
 }

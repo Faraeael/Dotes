@@ -293,9 +293,12 @@ class FakePlayerImportRepository implements PlayerImportRepository {
 class FakeCoachingCheckpointRepository implements CoachingCheckpointRepository {
   FakeCoachingCheckpointRepository({
     Map<int, CoachingCheckpoint>? storedCheckpoints,
-  }) : _storedCheckpoints = storedCheckpoints ?? {};
+  }) : _storedCheckpoints = {
+         for (final entry in (storedCheckpoints ?? {}).entries)
+           entry.key: [entry.value],
+       };
 
-  final Map<int, CoachingCheckpoint> _storedCheckpoints;
+  final Map<int, List<CoachingCheckpoint>> _storedCheckpoints;
 
   final List<int> loadCalls = [];
   final List<CoachingCheckpointDraft> savedDrafts = [];
@@ -303,14 +306,29 @@ class FakeCoachingCheckpointRepository implements CoachingCheckpointRepository {
   @override
   Future<CoachingCheckpoint?> loadForAccount(int accountId) async {
     loadCalls.add(accountId);
-    return _storedCheckpoints[accountId];
+    final history = _storedCheckpoints[accountId];
+    if (history == null || history.isEmpty) {
+      return null;
+    }
+
+    return history.first;
+  }
+
+  @override
+  Future<List<CoachingCheckpoint>> loadHistoryForAccount(int accountId) async {
+    loadCalls.add(accountId);
+    return (_storedCheckpoints[accountId] ?? const []).toList(growable: false);
   }
 
   @override
   Future<CoachingCheckpoint> saveDraft(CoachingCheckpointDraft draft) async {
     savedDrafts.add(draft);
     final checkpoint = draft.toCheckpoint(DateTime.utc(2025, 3, 21));
-    _storedCheckpoints[draft.accountId] = checkpoint;
+    _storedCheckpoints.update(
+      draft.accountId,
+      (history) => [checkpoint, ...history],
+      ifAbsent: () => [checkpoint],
+    );
     return checkpoint;
   }
 }

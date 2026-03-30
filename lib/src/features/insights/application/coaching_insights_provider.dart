@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../dashboard/application/comfort_core_provider.dart';
+import '../../matches/presentation/utils/hero_labels.dart';
 import '../../player_import/application/imported_player_provider.dart';
 import '../../roles/application/sample_role_summary_provider.dart';
 import '../domain/models/coaching_insight.dart';
@@ -36,6 +38,12 @@ final nextGamesFocusProvider = Provider<NextGamesFocus?>((ref) {
   }
 
   final insights = ref.watch(coachingInsightsProvider);
+  final comfortCore = ref.watch(comfortCoreProvider);
   final generator = ref.watch(nextGamesFocusGeneratorProvider);
-  return generator.generate(insights, sampleRoleSummary);
+  return generator.generate(
+    insights,
+    sampleRoleSummary,
+    comfortCore: comfortCore,
+    heroLabelFor: heroDisplayName,
+  );
 });

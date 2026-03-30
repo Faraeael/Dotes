@@ -5,6 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/router/app_router.dart';
 import '../../../features/checkpoints/application/coaching_checkpoint_providers.dart';
+import '../../../features/dashboard/application/block_review_provider.dart';
+import '../../../features/dashboard/application/comfort_core_provider.dart';
+import '../../../features/dashboard/application/dashboard_verdict_provider.dart';
+import '../../../features/dashboard/application/session_plan_provider.dart';
+import '../../../features/dashboard/application/training_history_provider.dart';
 import '../../../features/insights/application/coaching_insights_provider.dart';
 import '../../../features/insights/presentation/widgets/coaching_insights_card.dart';
 import '../../../features/insights/presentation/widgets/next_games_focus_card.dart';
@@ -15,10 +20,15 @@ import '../../../features/progress/application/progress_check_provider.dart';
 import '../../../features/progress/presentation/widgets/progress_check_card.dart';
 import '../../../features/roles/application/sample_role_summary_provider.dart';
 import 'utils/imported_sample_summary.dart';
+import 'widgets/block_review_card.dart';
+import 'widgets/comfort_core_card.dart';
 import 'widgets/dashboard_shell.dart';
 import 'widgets/imported_sample_card.dart';
 import 'widgets/player_summary_card.dart';
+import 'widgets/session_plan_card.dart';
 import 'widgets/section_card.dart';
+import 'widgets/training_history_card.dart';
+import 'widgets/verdict_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -43,6 +53,11 @@ class DashboardScreen extends ConsumerWidget {
     final progressCheck = ref.watch(progressCheckProvider);
     final focusFollowThrough = ref.watch(focusFollowThroughProvider);
     final sampleRoleSummary = ref.watch(sampleRoleSummaryProvider);
+    final comfortCore = ref.watch(comfortCoreProvider);
+    final dashboardVerdict = ref.watch(dashboardVerdictProvider);
+    final blockReview = ref.watch(blockReviewProvider);
+    final sessionPlan = ref.watch(sessionPlanProvider);
+    final trainingHistory = ref.watch(trainingHistoryProvider);
 
     void goToImport() {
       ref.read(playerImportControllerProvider.notifier).reset();
@@ -93,6 +108,22 @@ class DashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           PlayerSummaryCard(profile: importedPlayer.profile),
+          if (dashboardVerdict != null) ...[
+            const SizedBox(height: 16),
+            VerdictCard(verdict: dashboardVerdict),
+          ],
+          if (blockReview != null) ...[
+            const SizedBox(height: 16),
+            BlockReviewCard(review: blockReview),
+          ],
+          if (sessionPlan != null) ...[
+            const SizedBox(height: 16),
+            SessionPlanCard(plan: sessionPlan),
+          ],
+          if (trainingHistory != null) ...[
+            const SizedBox(height: 16),
+            TrainingHistoryCard(history: trainingHistory),
+          ],
           const SizedBox(height: 16),
           ImportedSampleCard(
             matchesAnalyzed: sampleSummary.matchesAnalyzed,
@@ -106,6 +137,10 @@ class DashboardScreen extends ConsumerWidget {
             roleMixDetailsLabel: sampleSummary.roleMixDetailsLabel,
             roleReadLabel: sampleSummary.roleReadLabel,
           ),
+          if (comfortCore != null) ...[
+            const SizedBox(height: 16),
+            ComfortCoreCard(summary: comfortCore),
+          ],
           const SizedBox(height: 16),
           if (progressCheck != null) ...[
             ProgressCheckCard(

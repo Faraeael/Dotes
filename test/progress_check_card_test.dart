@@ -26,11 +26,9 @@ void main() {
       );
 
       expect(find.text('Since last checkpoint'), findsOneWidget);
-      expect(
-        find.text('No previous coaching checkpoint yet.'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('Previous focus:'), findsNothing);
+      expect(find.text('No previous coaching checkpoint yet.'), findsOneWidget);
+      expect(find.textContaining('Focus:'), findsNothing);
+      expect(find.textContaining('Status:'), findsNothing);
     });
 
     testWidgets('shows checkpoint explanation context when available', (
@@ -46,7 +44,7 @@ void main() {
               ),
               followThroughCheck: FocusFollowThroughCheck.ready(
                 status: FocusFollowThroughStatus.onTrack,
-                detail: 'Average deaths are down since the last checkpoint.',
+                detail: 'Average deaths dropped from 7.4 to 5.8.',
                 checkpointSavedAt: DateTime.utc(2025, 3, 21, 6, 30),
                 previousFocusLabel: 'Early death risk',
                 comparisonLabel:
@@ -57,12 +55,15 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('Saved '), findsOneWidget);
-      expect(find.text('Previous focus: Early death risk'), findsOneWidget);
+      expect(find.textContaining('Saved:'), findsOneWidget);
+      expect(find.text('Focus: Early death risk'), findsOneWidget);
+      expect(find.text('Status: On track'), findsOneWidget);
       expect(
-        find.text(
-          'Compared against your last saved focus on reducing deaths.',
-        ),
+        find.text('Compared against your last saved focus on reducing deaths.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Average deaths dropped from 7.4 to 5.8.'),
         findsOneWidget,
       );
     });

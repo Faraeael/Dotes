@@ -9,6 +9,7 @@ import '../data/local/shared_preferences_checkpoint_local_store.dart';
 import '../data/repositories/local_coaching_checkpoint_repository.dart';
 import '../domain/models/coaching_checkpoint.dart';
 import '../domain/repositories/coaching_checkpoint_repository.dart';
+import '../domain/services/checkpoint_save_policy_service.dart';
 
 final checkpointLocalStoreProvider = Provider<CheckpointLocalStore>((ref) {
   return SharedPreferencesCheckpointLocalStore(SharedPreferencesAsync());
@@ -20,8 +21,16 @@ final coachingCheckpointRepositoryProvider =
       return LocalCoachingCheckpointRepository(store);
     });
 
+final checkpointSavePolicyServiceProvider =
+    Provider<CheckpointSavePolicyService>((ref) {
+      return const CheckpointSavePolicyService();
+    });
+
 final previousCoachingCheckpointProvider =
     StateProvider<CoachingCheckpoint?>((ref) => null);
+
+final coachingCheckpointHistoryProvider =
+    StateProvider<List<CoachingCheckpoint>>((ref) => const []);
 
 final _savedCheckpointFingerprintProvider = StateProvider<String?>(
   (ref) => null,
@@ -43,6 +52,11 @@ final currentCoachingCheckpointDraftProvider =
         focusAction: nextGamesFocus.action,
         focusSourceLabel: nextGamesFocus.sourceLabel,
         topInsightType: nextGamesFocus.sourceType,
+        focusHeroBlock: nextGamesFocus.heroBlock == null
+            ? null
+            : CoachingCheckpointHeroBlock.fromNextGamesFocusHeroBlock(
+                nextGamesFocus.heroBlock!,
+              ),
         sample: CoachingCheckpointSample.fromImportedPlayer(
           importedPlayer,
           sampleRoleSummary,
@@ -53,24 +67,34 @@ final currentCoachingCheckpointDraftProvider =
 final checkpointPersistenceControllerProvider =
     Provider<CheckpointPersistenceController>((ref) {
       final repository = ref.watch(coachingCheckpointRepositoryProvider);
-      return CheckpointPersistenceController(ref, repository);
+      final savePolicyService = ref.watch(checkpointSavePolicyServiceProvider);
+      return CheckpointPersistenceController(ref, repository, savePolicyService);
     });
 
 class CheckpointPersistenceController {
-  CheckpointPersistenceController(this._ref, this._repository);
+  CheckpointPersistenceController(
+    this._ref,
+    this._repository,
+    this._savePolicyService,
+  );
 
   final Ref _ref;
   final CoachingCheckpointRepository _repository;
+  final CheckpointSavePolicyService _savePolicyService;
 
   void clearSession() {
     _ref.read(previousCoachingCheckpointProvider.notifier).state = null;
+    _ref.read(coachingCheckpointHistoryProvider.notifier).state = const [];
     _ref.read(_savedCheckpointFingerprintProvider.notifier).state = null;
   }
 
   Future<void> loadPreviousForAccount(int accountId) async {
-    final checkpoint = await _repository.loadForAccount(accountId);
+    final history = await _repository.loadHistoryForAccount(accountId);
+    final checkpoint = history.isEmpty ? null : history.first;
+    _ref.read(coachingCheckpointHistoryProvider.notifier).state = history;
     _ref.read(previousCoachingCheckpointProvider.notifier).state = checkpoint;
-    _ref.read(_savedCheckpointFingerprintProvider.notifier).state = null;
+    _ref.read(_savedCheckpointFingerprintProvider.notifier).state =
+        checkpoint?.fingerprint;
   }
 
   Future<void> saveCurrentDraftIfNeeded(CoachingCheckpointDraft draft) async {
@@ -79,8 +103,22 @@ class CheckpointPersistenceController {
       return;
     }
 
-    await _repository.saveDraft(draft);
+    final currentHistory = _ref.read(coachingCheckpointHistoryProvider);
+    final lastCheckpoint = currentHistory.isEmpty ? null : currentHistory.first;
+    final decision = _savePolicyService.evaluate(
+      currentDraft: draft,
+      lastCheckpoint: lastCheckpoint,
+    );
+    if (!decision.shouldSave) {
+      return;
+    }
+
+    final checkpoint = await _repository.saveDraft(draft);
+    _ref.read(coachingCheckpointHistoryProvider.notifier).state = [
+      checkpoint,
+      ...currentHistory,
+    ];
     _ref.read(_savedCheckpointFingerprintProvider.notifier).state =
-        draft.fingerprint;
+        checkpoint.fingerprint;
   }
 }

@@ -23,6 +23,26 @@ class FocusFollowThroughService {
       );
     }
 
+    final previousHeroBlock = previousCheckpoint.focusHeroBlock;
+    if (previousHeroBlock != null && previousHeroBlock.heroIds.isNotEmpty) {
+      if (currentSample.recentMatchesWindow.length < 5) {
+        return FocusFollowThroughCheck.waiting(
+          fallbackMessage: 'Need a bigger block before judging follow-through.',
+          checkpointSavedAt: checkpointSavedAt,
+          previousFocusLabel: previousFocusLabel,
+          comparisonLabel: comparisonLabel,
+        );
+      }
+
+      return _judgeNamedHeroBlockFocus(
+        previousHeroBlock: previousHeroBlock,
+        currentSample: currentSample,
+        checkpointSavedAt: checkpointSavedAt,
+        previousFocusLabel: previousFocusLabel,
+        comparisonLabel: comparisonLabel,
+      );
+    }
+
     switch (previousCheckpoint.topInsightType) {
       case CoachingInsightType.earlyDeathRisk:
         return _judgeDeathsFocus(
@@ -55,19 +75,85 @@ class FocusFollowThroughService {
     }
   }
 
-  FocusFollowThroughCheck _judgeDeathsFocus(
-    double currentAverageDeaths,
-    double previousAverageDeaths,
-    {
+  FocusFollowThroughCheck _judgeNamedHeroBlockFocus({
+    required CoachingCheckpointHeroBlock previousHeroBlock,
+    required CoachingCheckpointSample currentSample,
     required DateTime checkpointSavedAt,
     required String previousFocusLabel,
     required String comparisonLabel,
+  }) {
+    final recentWindow = currentSample.recentMatchesWindow.take(5).toList(
+      growable: false,
+    );
+    final insideBlockMatches = recentWindow
+        .where((match) => previousHeroBlock.heroIds.contains(match.heroId))
+        .toList(growable: false);
+    final insideBlockCount = insideBlockMatches.length;
+    final insideBlockWins = insideBlockMatches
+        .where((match) => match.didWin)
+        .length;
+    final currentBlockWinRate = insideBlockCount == 0
+        ? 0.0
+        : insideBlockWins / insideBlockCount;
+    final previousBlockWinRate = previousHeroBlock.winRate;
+
+    if (insideBlockCount >= 4) {
+      final status = currentBlockWinRate >= previousBlockWinRate
+          ? FocusFollowThroughStatus.onTrack
+          : FocusFollowThroughStatus.mixed;
+
+      return FocusFollowThroughCheck.ready(
+        status: status,
+        detail: _namedHeroBlockResultLine(
+          previousHeroBlock: previousHeroBlock,
+          insideBlockCount: insideBlockCount,
+          currentBlockWinRate: currentBlockWinRate,
+          previousBlockWinRate: previousBlockWinRate,
+        ),
+        checkpointSavedAt: checkpointSavedAt,
+        previousFocusLabel: previousFocusLabel,
+        comparisonLabel: comparisonLabel,
+      );
+    }
+
+    if (insideBlockCount >= 2) {
+      return FocusFollowThroughCheck.ready(
+        status: FocusFollowThroughStatus.mixed,
+        detail:
+            'You stayed inside the ${previousHeroBlock.label} in $insideBlockCount of the last 5 games. That is too much drift to judge the trend cleanly.',
+        checkpointSavedAt: checkpointSavedAt,
+        previousFocusLabel: previousFocusLabel,
+        comparisonLabel: comparisonLabel,
+      );
+    }
+
+    final detail = insideBlockCount == 0
+        ? 'You drifted outside the last recommended hero block.'
+        : 'You drifted outside the last recommended hero block. Only 1 of the last 5 games stayed in the ${previousHeroBlock.label}.';
+
+    return FocusFollowThroughCheck.ready(
+      status: FocusFollowThroughStatus.offTrack,
+      detail: detail,
+      checkpointSavedAt: checkpointSavedAt,
+      previousFocusLabel: previousFocusLabel,
+      comparisonLabel: comparisonLabel,
+    );
   }
-  ) {
+
+  FocusFollowThroughCheck _judgeDeathsFocus(
+    double currentAverageDeaths,
+    double previousAverageDeaths, {
+    required DateTime checkpointSavedAt,
+    required String previousFocusLabel,
+    required String comparisonLabel,
+  }) {
     if (currentAverageDeaths <= previousAverageDeaths - 1) {
       return FocusFollowThroughCheck.ready(
         status: FocusFollowThroughStatus.onTrack,
-        detail: 'Average deaths are down since the last checkpoint.',
+        detail: _deathsResultLine(
+          currentAverageDeaths: currentAverageDeaths,
+          previousAverageDeaths: previousAverageDeaths,
+        ),
         checkpointSavedAt: checkpointSavedAt,
         previousFocusLabel: previousFocusLabel,
         comparisonLabel: comparisonLabel,
@@ -77,7 +163,10 @@ class FocusFollowThroughService {
     if (currentAverageDeaths >= previousAverageDeaths + 1) {
       return FocusFollowThroughCheck.ready(
         status: FocusFollowThroughStatus.offTrack,
-        detail: 'Average deaths are up since the last checkpoint.',
+        detail: _deathsResultLine(
+          currentAverageDeaths: currentAverageDeaths,
+          previousAverageDeaths: previousAverageDeaths,
+        ),
         checkpointSavedAt: checkpointSavedAt,
         previousFocusLabel: previousFocusLabel,
         comparisonLabel: comparisonLabel,
@@ -86,7 +175,10 @@ class FocusFollowThroughService {
 
     return FocusFollowThroughCheck.ready(
       status: FocusFollowThroughStatus.mixed,
-      detail: 'Average deaths look mostly flat since the last checkpoint.',
+      detail: _deathsResultLine(
+        currentAverageDeaths: currentAverageDeaths,
+        previousAverageDeaths: previousAverageDeaths,
+      ),
       checkpointSavedAt: checkpointSavedAt,
       previousFocusLabel: previousFocusLabel,
       comparisonLabel: comparisonLabel,
@@ -95,17 +187,18 @@ class FocusFollowThroughService {
 
   FocusFollowThroughCheck _judgeHeroPoolFocus(
     int currentUniqueHeroes,
-    int previousUniqueHeroes,
-    {
+    int previousUniqueHeroes, {
     required DateTime checkpointSavedAt,
     required String previousFocusLabel,
     required String comparisonLabel,
-  }
-  ) {
+  }) {
     if (currentUniqueHeroes < previousUniqueHeroes) {
       return FocusFollowThroughCheck.ready(
         status: FocusFollowThroughStatus.onTrack,
-        detail: 'Hero usage is narrower than the last checkpoint.',
+        detail: _heroPoolResultLine(
+          currentUniqueHeroes: currentUniqueHeroes,
+          previousUniqueHeroes: previousUniqueHeroes,
+        ),
         checkpointSavedAt: checkpointSavedAt,
         previousFocusLabel: previousFocusLabel,
         comparisonLabel: comparisonLabel,
@@ -115,7 +208,10 @@ class FocusFollowThroughService {
     if (currentUniqueHeroes > previousUniqueHeroes) {
       return FocusFollowThroughCheck.ready(
         status: FocusFollowThroughStatus.offTrack,
-        detail: 'Hero usage is wider than the last checkpoint.',
+        detail: _heroPoolResultLine(
+          currentUniqueHeroes: currentUniqueHeroes,
+          previousUniqueHeroes: previousUniqueHeroes,
+        ),
         checkpointSavedAt: checkpointSavedAt,
         previousFocusLabel: previousFocusLabel,
         comparisonLabel: comparisonLabel,
@@ -124,7 +220,10 @@ class FocusFollowThroughService {
 
     return FocusFollowThroughCheck.ready(
       status: FocusFollowThroughStatus.mixed,
-      detail: 'Hero usage looks steady since the last checkpoint.',
+      detail: _heroPoolResultLine(
+        currentUniqueHeroes: currentUniqueHeroes,
+        previousUniqueHeroes: previousUniqueHeroes,
+      ),
       checkpointSavedAt: checkpointSavedAt,
       previousFocusLabel: previousFocusLabel,
       comparisonLabel: comparisonLabel,
@@ -138,10 +237,7 @@ class FocusFollowThroughService {
     required String previousFocusLabel,
     required String comparisonLabel,
   }) {
-    final roleSignal = _roleConsistencySignal(
-      currentSample,
-      previousSample,
-    );
+    final roleSignal = _roleConsistencySignal(currentSample, previousSample);
     final heroPoolDirection = _compareHeroPool(
       currentSample.uniqueHeroesPlayed,
       previousSample.uniqueHeroesPlayed,
@@ -151,10 +247,11 @@ class FocusFollowThroughService {
     if (score >= 2) {
       return FocusFollowThroughCheck.ready(
         status: FocusFollowThroughStatus.onTrack,
-        detail: _stableBlockDetail(
+        detail: _stableBlockResultLine(
+          currentSample: currentSample,
+          previousSample: previousSample,
           heroPoolDirection: heroPoolDirection,
           roleSignal: roleSignal,
-          onTrack: true,
         ),
         checkpointSavedAt: checkpointSavedAt,
         previousFocusLabel: previousFocusLabel,
@@ -165,10 +262,11 @@ class FocusFollowThroughService {
     if (score <= -2) {
       return FocusFollowThroughCheck.ready(
         status: FocusFollowThroughStatus.offTrack,
-        detail: _stableBlockDetail(
+        detail: _stableBlockResultLine(
+          currentSample: currentSample,
+          previousSample: previousSample,
           heroPoolDirection: heroPoolDirection,
           roleSignal: roleSignal,
-          onTrack: false,
         ),
         checkpointSavedAt: checkpointSavedAt,
         previousFocusLabel: previousFocusLabel,
@@ -178,7 +276,9 @@ class FocusFollowThroughService {
 
     return FocusFollowThroughCheck.ready(
       status: FocusFollowThroughStatus.mixed,
-      detail: _mixedStableBlockDetail(
+      detail: _stableBlockResultLine(
+        currentSample: currentSample,
+        previousSample: previousSample,
         heroPoolDirection: heroPoolDirection,
         roleSignal: roleSignal,
       ),
@@ -189,6 +289,10 @@ class FocusFollowThroughService {
   }
 
   String _previousFocusLabel(CoachingCheckpoint checkpoint) {
+    if (checkpoint.focusHeroBlock != null) {
+      return checkpoint.focusHeroBlock!.label;
+    }
+
     final label = checkpoint.focusSourceLabel.trim();
     if (label.isNotEmpty) {
       return label;
@@ -207,6 +311,10 @@ class FocusFollowThroughService {
   }
 
   String _comparisonLabel(CoachingCheckpoint checkpoint) {
+    if (checkpoint.focusHeroBlock != null) {
+      return 'Compared against your last saved focus on staying inside the ${checkpoint.focusHeroBlock!.label}.';
+    }
+
     return switch (checkpoint.topInsightType) {
       CoachingInsightType.earlyDeathRisk =>
         'Compared against your last saved focus on reducing deaths.',
@@ -263,58 +371,94 @@ class FocusFollowThroughService {
     };
   }
 
-  String _stableBlockDetail({
+  String _deathsResultLine({
+    required double currentAverageDeaths,
+    required double previousAverageDeaths,
+  }) {
+    if (currentAverageDeaths <= previousAverageDeaths - 1) {
+      return 'Average deaths dropped from ${_formatAverageDeaths(previousAverageDeaths)} to ${_formatAverageDeaths(currentAverageDeaths)}.';
+    }
+
+    if (currentAverageDeaths >= previousAverageDeaths + 1) {
+      return 'Average deaths rose from ${_formatAverageDeaths(previousAverageDeaths)} to ${_formatAverageDeaths(currentAverageDeaths)}.';
+    }
+
+    return 'Average deaths stayed mostly flat, moving from ${_formatAverageDeaths(previousAverageDeaths)} to ${_formatAverageDeaths(currentAverageDeaths)}.';
+  }
+
+  String _heroPoolResultLine({
+    required int currentUniqueHeroes,
+    required int previousUniqueHeroes,
+  }) {
+    if (currentUniqueHeroes < previousUniqueHeroes) {
+      return 'Your hero pool narrowed from ${_heroCount(previousUniqueHeroes)} to ${_heroCount(currentUniqueHeroes)}.';
+    }
+
+    if (currentUniqueHeroes > previousUniqueHeroes) {
+      return 'Your hero pool widened from ${_heroCount(previousUniqueHeroes)} to ${_heroCount(currentUniqueHeroes)}.';
+    }
+
+    return 'Your hero pool stayed at ${_heroCount(currentUniqueHeroes)}.';
+  }
+
+  String _stableBlockResultLine({
+    required CoachingCheckpointSample currentSample,
+    required CoachingCheckpointSample previousSample,
     required _HeroPoolDirection heroPoolDirection,
     required _RoleConsistencySignal roleSignal,
-    required bool onTrack,
   }) {
-    if (heroPoolDirection == _HeroPoolDirection.narrower &&
-        roleSignal == _RoleConsistencySignal.positive) {
-      return onTrack
-          ? 'Since the last checkpoint, the sample is tighter on heroes and more consistent on role pattern.'
-          : 'Since the last checkpoint, the sample is broader on heroes and less consistent on role pattern.';
-    }
+    final heroLine = switch (heroPoolDirection) {
+      _HeroPoolDirection.narrower =>
+        'Your hero pool narrowed from ${_heroCount(previousSample.uniqueHeroesPlayed)} to ${_heroCount(currentSample.uniqueHeroesPlayed)}',
+      _HeroPoolDirection.same =>
+        'Your hero pool stayed at ${_heroCount(currentSample.uniqueHeroesPlayed)}',
+      _HeroPoolDirection.wider =>
+        'Your hero pool widened from ${_heroCount(previousSample.uniqueHeroesPlayed)} to ${_heroCount(currentSample.uniqueHeroesPlayed)}',
+    };
 
-    if (heroPoolDirection == _HeroPoolDirection.narrower) {
-      return 'Hero usage is tighter since the last checkpoint.';
-    }
-
-    if (heroPoolDirection == _HeroPoolDirection.wider) {
-      if (roleSignal == _RoleConsistencySignal.negative) {
-        return 'Since the last checkpoint, the sample is broader on heroes and less consistent on role pattern.';
+    if (roleSignal == _RoleConsistencySignal.neutral) {
+      if (heroPoolDirection == _HeroPoolDirection.same) {
+        return '$heroLine, and your role pattern is still mixed.';
       }
 
-      return 'The sample is broader than the last checkpoint focus asked for.';
+      return '$heroLine.';
     }
 
-    if (roleSignal == _RoleConsistencySignal.positive) {
-      return 'The role pattern looks a bit cleaner since the last checkpoint.';
-    }
+    final conjunction = roleSignal == _RoleConsistencySignal.positive
+        ? 'and'
+        : 'but';
+    final roleLine = roleSignal == _RoleConsistencySignal.positive
+        ? 'your role pattern looks more consistent'
+        : 'your role pattern looks less consistent';
 
-    return 'The sample is not lining up cleanly with the last checkpoint focus yet.';
+    return '$heroLine, $conjunction $roleLine.';
   }
 
-  String _mixedStableBlockDetail({
-    required _HeroPoolDirection heroPoolDirection,
-    required _RoleConsistencySignal roleSignal,
+  String _namedHeroBlockResultLine({
+    required CoachingCheckpointHeroBlock previousHeroBlock,
+    required int insideBlockCount,
+    required double currentBlockWinRate,
+    required double previousBlockWinRate,
   }) {
-    if (heroPoolDirection == _HeroPoolDirection.narrower &&
-        roleSignal != _RoleConsistencySignal.negative) {
-      return 'Hero usage is tighter, but the role pattern is not fully settled yet.';
+    final adherenceLine =
+        'You stayed inside the ${previousHeroBlock.label} in $insideBlockCount of the last 5 games.';
+
+    if (currentBlockWinRate > previousBlockWinRate) {
+      return '$adherenceLine Results there improved from ${_formatPercent(previousBlockWinRate)} to ${_formatPercent(currentBlockWinRate)}.';
     }
 
-    if (heroPoolDirection == _HeroPoolDirection.same &&
-        roleSignal == _RoleConsistencySignal.positive) {
-      return 'Hero usage is steady, and the role pattern still looks consistent.';
+    if (currentBlockWinRate < previousBlockWinRate) {
+      return '$adherenceLine Results there slipped from ${_formatPercent(previousBlockWinRate)} to ${_formatPercent(currentBlockWinRate)}.';
     }
 
-    if (heroPoolDirection == _HeroPoolDirection.wider &&
-        roleSignal == _RoleConsistencySignal.positive) {
-      return 'The role pattern still looks consistent, but hero usage is still broad.';
-    }
-
-    return 'The current sample only partly matches the last checkpoint focus.';
+    return '$adherenceLine Results there stayed stable at ${_formatPercent(currentBlockWinRate)}.';
   }
+
+  String _formatAverageDeaths(double value) => value.toStringAsFixed(1);
+
+  String _formatPercent(double value) => '${(value * 100).round()}%';
+
+  String _heroCount(int count) => '$count ${count == 1 ? 'hero' : 'heroes'}';
 }
 
 enum _RoleConsistencySignal {
@@ -327,8 +471,4 @@ enum _RoleConsistencySignal {
   final int score;
 }
 
-enum _HeroPoolDirection {
-  narrower,
-  same,
-  wider,
-}
+enum _HeroPoolDirection { narrower, same, wider }
