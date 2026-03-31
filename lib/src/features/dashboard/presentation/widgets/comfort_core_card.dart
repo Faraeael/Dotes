@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_metric_grid.dart';
 import '../../../matches/presentation/utils/hero_labels.dart';
 import '../../domain/models/comfort_core_summary.dart';
+import 'hero_link_chips.dart';
 import 'section_card.dart';
 
 class ComfortCoreCard extends StatelessWidget {
   const ComfortCoreCard({
     required this.summary,
+    required this.onSelectHero,
     super.key,
   });
 
   final ComfortCoreSummary summary;
+  final ValueChanged<int> onSelectHero;
 
   @override
   Widget build(BuildContext context) {
     if (!summary.isReady) {
-      return SectionCard(
-        title: 'Comfort core',
-        body: summary.conclusion,
-      );
+      return SectionCard(title: 'Comfort core', body: summary.conclusion);
     }
 
     return Card(
@@ -27,19 +28,14 @@ class ComfortCoreCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Comfort core',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Comfort core', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
-              'A quick coaching read on whether recent results stay on a small hero core.',
+              'Checks whether recent results stay on a tight hero core.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
+            AppMetricGrid(
               children: [
                 _ComfortMetric(
                   label: 'Top 2 heroes',
@@ -66,6 +62,21 @@ class ComfortCoreCard extends StatelessWidget {
               summary.conclusion,
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (summary.topHeroes.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              HeroLinkChips(
+                heroes: summary.topHeroes
+                    .map(
+                      (hero) => HeroLinkChipData(
+                        heroId: hero.heroId,
+                        label: heroDisplayName(hero.heroId),
+                        detail: '${hero.matches} matches',
+                      ),
+                    )
+                    .toList(growable: false),
+                onSelectHero: onSelectHero,
+              ),
+            ],
           ],
         ),
       ),
@@ -78,21 +89,17 @@ class ComfortCoreCard extends StatelessWidget {
         .join(', ');
   }
 
-  String _recordLabel({
-    required int wins,
-    required int losses,
-  }) {
+  String _recordLabel({required int wins, required int losses}) {
     final totalMatches = wins + losses;
-    final winRate = totalMatches == 0 ? 0 : ((wins / totalMatches) * 100).round();
+    final winRate = totalMatches == 0
+        ? 0
+        : ((wins / totalMatches) * 100).round();
     return '$wins-$losses ($winRate%)';
   }
 }
 
 class _ComfortMetric extends StatelessWidget {
-  const _ComfortMetric({
-    required this.label,
-    required this.value,
-  });
+  const _ComfortMetric({required this.label, required this.value});
 
   final String label;
   final String value;

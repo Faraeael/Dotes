@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_card_header.dart';
+import '../../../../app/widgets/app_status_badge.dart';
 import '../../../dashboard/presentation/widgets/section_card.dart';
 import '../../domain/models/coaching_insight.dart';
 
@@ -18,8 +20,7 @@ class CoachingInsightsCard extends StatelessWidget {
     if (visibleInsights.isEmpty) {
       return const SectionCard(
         title: 'Coaching insights',
-        body:
-            'No strong rule-based coaching signals stand out in the current imported sample.',
+        body: 'No strong coaching signals stand out in this sample.',
       );
     }
 
@@ -29,14 +30,9 @@ class CoachingInsightsCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Coaching insights',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Top rule-based signals from the current imported sample.',
-              style: Theme.of(context).textTheme.bodyMedium,
+            const AppCardHeader(
+              title: 'Coaching insights',
+              subtitle: 'Top rule-based signals from this sample.',
             ),
             const SizedBox(height: 16),
             for (var index = 0; index < visibleInsights.length; index++) ...[
@@ -63,16 +59,36 @@ class _InsightRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(insight.title, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
-        Text(
-          '${insight.severity.label} severity - ${insight.confidence.label} confidence',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            AppStatusBadge(
+              label: '${insight.severity.label} severity',
+              tone: _toneForSeverity(insight.severity),
+            ),
+            AppStatusBadge(
+              label: '${insight.confidence.label} confidence',
+              tone: insight.confidence == CoachingInsightConfidence.high
+                  ? AppStatusTone.positive
+                  : insight.confidence == CoachingInsightConfidence.medium
+                  ? AppStatusTone.info
+                  : AppStatusTone.warning,
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Text(insight.explanation, style: theme.textTheme.bodyMedium),
       ],
     );
+  }
+
+  AppStatusTone _toneForSeverity(CoachingInsightSeverity severity) {
+    return switch (severity) {
+      CoachingInsightSeverity.low => AppStatusTone.info,
+      CoachingInsightSeverity.medium => AppStatusTone.warning,
+      CoachingInsightSeverity.high => AppStatusTone.negative,
+    };
   }
 }

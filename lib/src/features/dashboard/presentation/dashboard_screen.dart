@@ -1,34 +1,31 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../app/router/app_router.dart';
 import '../../../features/checkpoints/application/coaching_checkpoint_providers.dart';
+import '../../../features/checkpoints/application/training_block_action_providers.dart';
+import '../../../features/dashboard/application/dashboard_layout_providers.dart';
 import '../../../features/dashboard/application/block_review_provider.dart';
 import '../../../features/dashboard/application/comfort_core_provider.dart';
+import '../../../features/dashboard/application/dashboard_onboarding_providers.dart';
 import '../../../features/dashboard/application/dashboard_verdict_provider.dart';
 import '../../../features/dashboard/application/session_plan_provider.dart';
 import '../../../features/dashboard/application/training_history_provider.dart';
+import '../../../features/hero_detail/presentation/hero_detail_screen.dart';
 import '../../../features/insights/application/coaching_insights_provider.dart';
-import '../../../features/insights/presentation/widgets/coaching_insights_card.dart';
-import '../../../features/insights/presentation/widgets/next_games_focus_card.dart';
-import '../../../features/matches/presentation/widgets/matches_overview_card.dart';
 import '../../../features/player_import/application/imported_player_provider.dart';
 import '../../../features/player_import/application/player_import_controller.dart';
 import '../../../features/progress/application/progress_check_provider.dart';
-import '../../../features/progress/presentation/widgets/progress_check_card.dart';
 import '../../../features/roles/application/sample_role_summary_provider.dart';
+import '../../../features/tester_feedback/application/playtest_summary_providers.dart';
+import '../../../features/tester_feedback/application/tester_feedback_providers.dart';
+import '../../../features/tester_feedback/presentation/widgets/playtest_summary_dialog.dart';
+import '../../../features/tester_feedback/presentation/widgets/tester_feedback_dialog.dart';
+import '../../../features/training_preferences/application/training_preferences_providers.dart';
+import '../../../features/training_preferences/presentation/widgets/training_preferences_dialog.dart';
 import 'utils/imported_sample_summary.dart';
-import 'widgets/block_review_card.dart';
-import 'widgets/comfort_core_card.dart';
-import 'widgets/dashboard_shell.dart';
-import 'widgets/imported_sample_card.dart';
-import 'widgets/player_summary_card.dart';
-import 'widgets/session_plan_card.dart';
-import 'widgets/section_card.dart';
-import 'widgets/training_history_card.dart';
-import 'widgets/verdict_card.dart';
+import 'widgets/dashboard_empty_view.dart';
+import 'widgets/dashboard_loaded_view.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -58,33 +55,78 @@ class DashboardScreen extends ConsumerWidget {
     final blockReview = ref.watch(blockReviewProvider);
     final sessionPlan = ref.watch(sessionPlanProvider);
     final trainingHistory = ref.watch(trainingHistoryProvider);
+    final checkpointSaveStatusSummary = ref.watch(
+      checkpointSaveStatusSummaryProvider,
+    );
+    final trainingBlockActionControl = ref.watch(
+      trainingBlockActionControlProvider,
+    );
+    final isStartingTrainingBlock = ref.watch(
+      trainingBlockActionBusyProvider,
+    );
+    final showDashboardOnboarding = ref.watch(
+      dashboardOnboardingVisibleProvider,
+    );
+    final detailsExpanded = ref.watch(dashboardDetailsExpandedProvider);
+    final testerFeedback = ref.watch(currentTesterFeedbackProvider);
+    final trainingPreferences = ref.watch(currentTrainingPreferencesProvider);
+    final coachingSourceSummary = ref.watch(coachingSourceSummaryProvider);
+    final onboardingGuide = showDashboardOnboarding
+        ? ref.watch(dashboardOnboardingGuideProvider)
+        : null;
 
     void goToImport() {
       ref.read(playerImportControllerProvider.notifier).reset();
       Navigator.of(context).pushReplacementNamed(AppRoutes.importPlayer);
     }
 
-    if (importedPlayer == null) {
-      return DashboardShell(
-        title: 'Dashboard',
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: SectionCard(
-                title: 'No imported player yet',
-                body:
-                    'Start from the import screen to load a live OpenDota profile and recent matches for this dashboard.',
-                action: OutlinedButton(
-                  onPressed: goToImport,
-                  child: const Text('Back to import'),
-                ),
-              ),
-            ),
-          ),
-        ),
+    Future<void> editTrainingPreferences() async {
+      if (importedPlayer == null) {
+        return;
+      }
+
+      final updatedPreferences = await TrainingPreferencesDialog.show(
+        context,
+        initialPreferences: trainingPreferences,
       );
+      if (updatedPreferences == null) {
+        return;
+      }
+
+      await ref
+          .read(trainingPreferencesControllerProvider)
+          .saveForAccount(importedPlayer.profile.accountId, updatedPreferences);
+    }
+
+    Future<void> editTesterFeedback() async {
+      if (importedPlayer == null) {
+        return;
+      }
+
+      final updatedFeedback = await TesterFeedbackDialog.show(
+        context,
+        initialFeedback: testerFeedback,
+      );
+      if (updatedFeedback == null) {
+        return;
+      }
+
+      await ref
+          .read(testerFeedbackControllerProvider)
+          .saveForAccount(
+            importedPlayer.profile.accountId,
+            updatedFeedback,
+            playerLabel: importedPlayer.profile.displayName,
+          );
+    }
+
+    Future<void> showPlaytestSummary() async {
+      ref.read(playtestSummaryFilterProvider.notifier).state = null;
+      await PlaytestSummaryDialog.show(context);
+    }
+
+    if (importedPlayer == null) {
+      return DashboardEmptyView(onGoToImport: goToImport);
     }
 
     final sampleSummary = ImportedSampleSummary.fromImportedPlayer(
@@ -92,82 +134,55 @@ class DashboardScreen extends ConsumerWidget {
       sampleRoleSummary!,
     );
 
-    return DashboardShell(
-      title: 'Dashboard',
-      child: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Text(
-            importedPlayer.profile.displayName,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'This dashboard shows the imported sample, a simple progress check, coaching signals, and recent matches at a glance.',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 24),
-          PlayerSummaryCard(profile: importedPlayer.profile),
-          if (dashboardVerdict != null) ...[
-            const SizedBox(height: 16),
-            VerdictCard(verdict: dashboardVerdict),
-          ],
-          if (blockReview != null) ...[
-            const SizedBox(height: 16),
-            BlockReviewCard(review: blockReview),
-          ],
-          if (sessionPlan != null) ...[
-            const SizedBox(height: 16),
-            SessionPlanCard(plan: sessionPlan),
-          ],
-          if (trainingHistory != null) ...[
-            const SizedBox(height: 16),
-            TrainingHistoryCard(history: trainingHistory),
-          ],
-          const SizedBox(height: 16),
-          ImportedSampleCard(
-            matchesAnalyzed: sampleSummary.matchesAnalyzed,
-            wins: sampleSummary.wins,
-            losses: sampleSummary.losses,
-            winRateLabel: sampleSummary.winRateLabel,
-            uniqueHeroesPlayed: sampleSummary.uniqueHeroesPlayed,
-            mostPlayedHeroLabel: sampleSummary.mostPlayedHeroLabel,
-            primaryRoleLabel: sampleSummary.primaryRoleLabel,
-            roleReasonLabel: sampleSummary.roleReasonLabel,
-            roleMixDetailsLabel: sampleSummary.roleMixDetailsLabel,
-            roleReadLabel: sampleSummary.roleReadLabel,
-          ),
-          if (comfortCore != null) ...[
-            const SizedBox(height: 16),
-            ComfortCoreCard(summary: comfortCore),
-          ],
-          const SizedBox(height: 16),
-          if (progressCheck != null) ...[
-            ProgressCheckCard(
-              progressCheck: progressCheck,
-              followThroughCheck: focusFollowThrough,
-            ),
-            const SizedBox(height: 16),
-          ],
-          if (nextGamesFocus != null) ...[
-            NextGamesFocusCard(focus: nextGamesFocus),
-            const SizedBox(height: 16),
-          ],
-          CoachingInsightsCard(insights: coachingInsights),
-          const SizedBox(height: 16),
-          MatchesOverviewCard(recentMatches: importedPlayer.recentMatches),
-          const SizedBox(height: 16),
-          SectionCard(
-            title: 'Player import',
-            body:
-                'The import flow now validates the ID, fetches the player summary, loads recent matches, stores the result in Riverpod, and only then routes here.',
-            action: OutlinedButton(
-              onPressed: goToImport,
-              child: const Text('Change player'),
-            ),
-          ),
-        ],
-      ),
+    return DashboardLoadedView(
+      importedPlayer: importedPlayer,
+      sampleSummary: sampleSummary,
+      coachingInsights: coachingInsights,
+      nextGamesFocus: nextGamesFocus,
+      progressCheck: progressCheck,
+      focusFollowThrough: focusFollowThrough,
+      comfortCore: comfortCore,
+      testerFeedback: testerFeedback,
+      dashboardVerdict: dashboardVerdict,
+      blockReview: blockReview,
+      sessionPlan: sessionPlan,
+      trainingHistory: trainingHistory,
+      checkpointSaveStatusSummary: checkpointSaveStatusSummary,
+      trainingBlockActionControl: trainingBlockActionControl,
+      isStartingTrainingBlock: isStartingTrainingBlock,
+      coachingSourceSummary: coachingSourceSummary,
+      onboardingGuide: onboardingGuide,
+      detailsExpanded: detailsExpanded,
+      onOpenHeroDetail: (heroId) {
+        Navigator.of(context).push(HeroDetailScreen.route(heroId));
+      },
+      onToggleDetails: () {
+        ref.read(dashboardDetailsExpandedProvider.notifier).state =
+            !detailsExpanded;
+      },
+      onDismissOnboarding: () {
+        unawaited(
+          ref.read(dashboardOnboardingControllerProvider.notifier).dismiss(),
+        );
+      },
+      onStartTrainingBlock: () {
+        unawaited(
+          ref.read(trainingBlockActionControllerProvider).startOrRestartCurrentBlock(),
+        );
+      },
+      onShowHowItWorks: () {
+        ref.read(dashboardOnboardingControllerProvider.notifier).showGuide();
+      },
+      onEditTrainingPreferences: () {
+        unawaited(editTrainingPreferences());
+      },
+      onEditTesterFeedback: () {
+        unawaited(editTesterFeedback());
+      },
+      onShowPlaytestSummary: () {
+        unawaited(showPlaytestSummary());
+      },
+      onGoToImport: goToImport,
     );
   }
 }

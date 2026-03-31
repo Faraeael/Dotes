@@ -20,7 +20,8 @@ class TrainingHistoryService {
     if (sortedCheckpoints.length < 2) {
       return const TrainingHistory(
         entries: [],
-        fallbackMessage: 'No completed coaching cycles saved yet.',
+        fallbackMessage:
+            'No completed cycles yet \u2014 finish your first 5-game block to see history here.',
       );
     }
 
@@ -49,7 +50,9 @@ class TrainingHistoryService {
 
     return TrainingHistoryEntry(
       savedAt: previousCheckpoint.savedAt,
-      focusLabel: followThroughCheck.previousFocusLabel ?? _fallbackFocusLabel(previousCheckpoint),
+      focusLabel:
+          followThroughCheck.previousFocusLabel ??
+          _fallbackFocusLabel(previousCheckpoint),
       outcome: _outcomeFromFollowThrough(followThroughCheck),
       resultSummary: _resultSummary(
         previousCheckpoint: previousCheckpoint,
@@ -78,7 +81,9 @@ class TrainingHistoryService {
     required CoachingCheckpoint currentCheckpoint,
     required FocusFollowThroughCheck followThroughCheck,
   }) {
-    final savedHeroBlock = previousCheckpoint.focusHeroBlock;
+    final savedHeroBlock =
+        previousCheckpoint.savedSessionPlanHeroBlock ??
+        previousCheckpoint.focusHeroBlock;
     if (savedHeroBlock != null) {
       return _heroBlockSummary(
         heroBlock: savedHeroBlock,
@@ -102,9 +107,10 @@ class TrainingHistoryService {
         previousMatchesAnalyzed: previousCheckpoint.sample.matchesAnalyzed,
         currentMatchesAnalyzed: currentCheckpoint.sample.matchesAnalyzed,
       ),
-      null => followThroughCheck.isReady
-          ? 'Block landed ${followThroughCheck.statusLabel!.toLowerCase()}.'
-          : 'Sample stayed too noisy to judge cleanly.',
+      null =>
+        followThroughCheck.isReady
+            ? 'Block landed ${followThroughCheck.statusLabel!.toLowerCase()}.'
+            : 'Sample stayed too noisy to judge cleanly.',
     };
   }
 
@@ -112,9 +118,9 @@ class TrainingHistoryService {
     required CoachingCheckpointHeroBlock heroBlock,
     required CoachingCheckpointSample currentSample,
   }) {
-    final recentWindow = currentSample.recentMatchesWindow.take(5).toList(
-      growable: false,
-    );
+    final recentWindow = currentSample.recentMatchesWindow
+        .take(5)
+        .toList(growable: false);
     if (recentWindow.isEmpty) {
       return 'Hero-block window was not saved for this cycle.';
     }
@@ -172,8 +178,10 @@ class TrainingHistoryService {
   }
 
   String _fallbackFocusLabel(CoachingCheckpoint checkpoint) {
-    if (checkpoint.focusHeroBlock != null) {
-      return checkpoint.focusHeroBlock!.label;
+    final savedHeroBlock =
+        checkpoint.savedSessionPlanHeroBlock ?? checkpoint.focusHeroBlock;
+    if (savedHeroBlock != null) {
+      return savedHeroBlock.label;
     }
 
     final label = checkpoint.focusSourceLabel.trim();

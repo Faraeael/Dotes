@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_theme_tokens.dart';
+import '../../../../app/widgets/app_card_header.dart';
+import '../../../../app/widgets/app_status_badge.dart';
 import '../../domain/models/dashboard_verdict.dart';
 
 class VerdictCard extends StatelessWidget {
@@ -13,6 +16,7 @@ class VerdictCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = AppThemeTokens.of(context);
 
     return Card(
       child: Padding(
@@ -20,8 +24,12 @@ class VerdictCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Verdict', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
+            const AppCardHeader(
+              title: 'Verdict',
+              subtitle:
+                  'Fast read on the biggest leak to fix and the biggest edge to press.',
+            ),
+            const SizedBox(height: 16),
             if (!verdict.hasSignal)
               Text(
                 verdict.fallbackMessage!,
@@ -29,16 +37,24 @@ class VerdictCard extends StatelessWidget {
               )
             else ...[
               if (verdict.biggestLeak != null)
-                _VerdictRow(
-                  label: 'Biggest leak',
+                _VerdictPanel(
+                  badge: const AppStatusBadge(
+                    label: 'Main leak',
+                    tone: AppStatusTone.negative,
+                  ),
                   message: verdict.biggestLeak!.message,
+                  borderColor: tokens.negative.withAlpha(110),
                 ),
               if (verdict.biggestLeak != null && verdict.biggestEdge != null)
-                const Divider(height: 20),
+                const SizedBox(height: 14),
               if (verdict.biggestEdge != null)
-                _VerdictRow(
-                  label: 'Biggest edge',
+                _VerdictPanel(
+                  badge: const AppStatusBadge(
+                    label: 'Main edge',
+                    tone: AppStatusTone.positive,
+                  ),
                   message: verdict.biggestEdge!.message,
+                  borderColor: tokens.positive.withAlpha(110),
                 ),
             ],
           ],
@@ -48,34 +64,37 @@ class VerdictCard extends StatelessWidget {
   }
 }
 
-class _VerdictRow extends StatelessWidget {
-  const _VerdictRow({
-    required this.label,
+class _VerdictPanel extends StatelessWidget {
+  const _VerdictPanel({
+    required this.badge,
     required this.message,
+    required this.borderColor,
   });
 
-  final String label;
+  final Widget badge;
   final String message;
+  final Color borderColor;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          message,
-          style: theme.textTheme.bodyLarge,
-        ),
-      ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          badge,
+          const SizedBox(height: 12),
+          Text(message, style: theme.textTheme.bodyLarge),
+        ],
+      ),
     );
   }
 }

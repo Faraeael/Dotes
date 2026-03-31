@@ -1,9 +1,11 @@
 import 'package:dotes/src/features/dashboard/domain/models/comfort_core_summary.dart';
 import 'package:dotes/src/features/insights/domain/models/coaching_insight.dart';
 import 'package:dotes/src/features/insights/domain/services/next_games_focus_generator.dart';
+import 'package:dotes/src/features/player_import/domain/models/recent_match.dart';
 import 'package:dotes/src/features/roles/domain/models/player_role.dart';
 import 'package:dotes/src/features/roles/domain/models/role_confidence.dart';
 import 'package:dotes/src/features/roles/domain/models/sample_role_summary.dart';
+import 'package:dotes/src/features/training_preferences/domain/models/training_preferences.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -100,6 +102,79 @@ void main() {
       expect(firstPass.sourceLabel, secondPass.sourceLabel);
       expect(firstPass.heroBlock!.heroIds, secondPass.heroBlock!.heroIds);
     });
+
+    test('auto mode leaves the current automatic focus behavior unchanged', () {
+      final focus = generator.generate(
+        [_limitedConfidenceInsight()],
+        _roleSummary(readType: SampleRoleReadType.smallSample),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.tinySample,
+          topHeroes: const [],
+        ),
+        heroLabelFor: _heroLabelFor,
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.followAppRead,
+          preferredRole: TrainingRolePreference.mid,
+          lockedHeroIds: [28, 129],
+        ),
+      );
+
+      expect(
+        focus.action,
+        'Play 5 more games on one role and a 2-hero block before judging this sample.',
+      );
+      expect(focus.heroBlock, isNull);
+    });
+
+    test('manual hero block sharpens focus when manual setup is active', () {
+      final focus = generator.generate(
+        [_limitedConfidenceInsight()],
+        _roleSummary(readType: SampleRoleReadType.smallSample),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.tinySample,
+          topHeroes: const [],
+        ),
+        recentMatches: [
+          RecentMatch(
+            matchId: 1,
+            heroId: 28,
+            startedAt: DateTime.utc(2025, 3, 20),
+            duration: Duration(minutes: 30),
+            kills: 5,
+            deaths: 4,
+            assists: 8,
+            didWin: true,
+            partySize: 1,
+          ),
+          RecentMatch(
+            matchId: 2,
+            heroId: 129,
+            startedAt: DateTime.utc(2025, 3, 21),
+            duration: Duration(minutes: 31),
+            kills: 4,
+            deaths: 5,
+            assists: 10,
+            didWin: false,
+            partySize: 1,
+          ),
+        ],
+        heroLabelFor: _heroLabelFor,
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          preferredRole: TrainingRolePreference.mid,
+          lockedHeroIds: [28, 129],
+        ),
+      );
+
+      expect(
+        focus.action,
+        'Play 5 more Mid games on Slardar and Mars before judging this sample.',
+      );
+      expect(focus.heroBlock, isNotNull);
+      expect(focus.heroBlock!.heroIds, [28, 129]);
+      expect(focus.heroBlock!.wins, 1);
+      expect(focus.heroBlock!.losses, 1);
+    });
   });
 }
 
@@ -130,7 +205,9 @@ ComfortCoreSummary _comfortCore({
   return ComfortCoreSummary(
     conclusionType: conclusionType,
     conclusion: 'Conclusion',
-    totalMatches: conclusionType == ComfortCoreConclusionType.tinySample ? 4 : 7,
+    totalMatches: conclusionType == ComfortCoreConclusionType.tinySample
+        ? 4
+        : 7,
     minimumMatches: 5,
     topHeroes: topHeroes,
     topHeroWins: 4,

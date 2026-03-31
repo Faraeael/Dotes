@@ -1,26 +1,28 @@
 import '../models/coaching_checkpoint.dart';
 
-enum CheckpointSaveDecisionReason {
-  firstCheckpoint,
-  differentAccount,
-  noNewMatches,
-  overlappingBlock,
-  insufficientNewSignal,
-  meaningfulNewState,
+enum CheckpointSaveStatus {
+  saved,
+  skippedNoNewMatches,
+  skippedDuplicateBlock,
+  skippedNotMeaningfullyNew,
 }
 
 class CheckpointSaveDecision {
   const CheckpointSaveDecision({
-    required this.shouldSave,
-    required this.reason,
+    required this.accountId,
+    required this.status,
     required this.newWindowMatchCount,
     required this.overlapCount,
+    required this.blockFingerprint,
   });
 
-  final bool shouldSave;
-  final CheckpointSaveDecisionReason reason;
+  final int accountId;
+  final CheckpointSaveStatus status;
   final int newWindowMatchCount;
   final int overlapCount;
+  final String blockFingerprint;
+
+  bool get shouldSave => status == CheckpointSaveStatus.saved;
 }
 
 class CheckpointSavePolicyService {
@@ -35,80 +37,115 @@ class CheckpointSavePolicyService {
     required CoachingCheckpoint? lastCheckpoint,
   }) {
     if (lastCheckpoint == null) {
-      return const CheckpointSaveDecision(
-        shouldSave: true,
-        reason: CheckpointSaveDecisionReason.firstCheckpoint,
-        newWindowMatchCount: 5,
+      return CheckpointSaveDecision(
+        accountId: currentDraft.accountId,
+        status: CheckpointSaveStatus.saved,
+        newWindowMatchCount: currentDraft.sample.recentMatchesWindow.length,
         overlapCount: 0,
+        blockFingerprint: currentDraft.blockFingerprint,
       );
     }
 
     if (lastCheckpoint.accountId != currentDraft.accountId) {
-      return const CheckpointSaveDecision(
-        shouldSave: true,
-        reason: CheckpointSaveDecisionReason.differentAccount,
-        newWindowMatchCount: 5,
+      return CheckpointSaveDecision(
+        accountId: currentDraft.accountId,
+        status: CheckpointSaveStatus.saved,
+        newWindowMatchCount: currentDraft.sample.recentMatchesWindow.length,
         overlapCount: 0,
+        blockFingerprint: currentDraft.blockFingerprint,
       );
     }
 
     final currentTokens = currentDraft.sample.recentWindowTokens;
-    final previousTokens = lastCheckpoint.sample.recentWindowTokens.toSet();
-    final newWindowMatchCount = currentTokens
-        .where((token) => !previousTokens.contains(token))
-        .length;
-    final overlapCount = currentTokens.length - newWindowMatchCount;
+    final overlapCount = _countWindowOverlap(
+      currentTokens: currentTokens,
+      previousTokens: lastCheckpoint.sample.recentWindowTokens,
+    );
+    final newWindowMatchCount = currentTokens.length - overlapCount;
     final currentLatestMatchId = currentDraft.sample.latestMatchId;
     final previousLatestMatchId = lastCheckpoint.sample.latestMatchId;
 
     if (currentLatestMatchId != null &&
         previousLatestMatchId != null &&
-        currentLatestMatchId == previousLatestMatchId) {
+        currentLatestMatchId <= previousLatestMatchId) {
       return CheckpointSaveDecision(
-        shouldSave: false,
-        reason: CheckpointSaveDecisionReason.noNewMatches,
+        accountId: currentDraft.accountId,
+        status: CheckpointSaveStatus.skippedNoNewMatches,
         newWindowMatchCount: newWindowMatchCount,
         overlapCount: overlapCount,
+        blockFingerprint: currentDraft.blockFingerprint,
       );
     }
 
-    if (newWindowMatchCount == 0 ||
-        currentDraft.sample.reviewedBlockSignature ==
-            lastCheckpoint.sample.reviewedBlockSignature) {
+    if (newWindowMatchCount == 0) {
       return CheckpointSaveDecision(
-        shouldSave: false,
-        reason: CheckpointSaveDecisionReason.noNewMatches,
+        accountId: currentDraft.accountId,
+        status: CheckpointSaveStatus.skippedNoNewMatches,
         newWindowMatchCount: newWindowMatchCount,
         overlapCount: overlapCount,
+        blockFingerprint: currentDraft.blockFingerprint,
       );
     }
 
     if (overlapCount >= _heavyOverlapThreshold) {
       return CheckpointSaveDecision(
-        shouldSave: false,
-        reason: CheckpointSaveDecisionReason.overlappingBlock,
+        accountId: currentDraft.accountId,
+        status: CheckpointSaveStatus.skippedDuplicateBlock,
         newWindowMatchCount: newWindowMatchCount,
         overlapCount: overlapCount,
+        blockFingerprint: currentDraft.blockFingerprint,
       );
     }
 
     if (newWindowMatchCount >= _meaningfulNewWindowThreshold ||
-        _hasMaterialCycleShift(currentDraft, lastCheckpoint,
-            newWindowMatchCount: newWindowMatchCount)) {
+        _hasMaterialCycleShift(
+          currentDraft,
+          lastCheckpoint,
+          newWindowMatchCount: newWindowMatchCount,
+        )) {
       return CheckpointSaveDecision(
-        shouldSave: true,
-        reason: CheckpointSaveDecisionReason.meaningfulNewState,
+        accountId: currentDraft.accountId,
+        status: CheckpointSaveStatus.saved,
         newWindowMatchCount: newWindowMatchCount,
         overlapCount: overlapCount,
+        blockFingerprint: currentDraft.blockFingerprint,
       );
     }
 
     return CheckpointSaveDecision(
-      shouldSave: false,
-      reason: CheckpointSaveDecisionReason.insufficientNewSignal,
+      accountId: currentDraft.accountId,
+      status: CheckpointSaveStatus.skippedNotMeaningfullyNew,
       newWindowMatchCount: newWindowMatchCount,
       overlapCount: overlapCount,
+      blockFingerprint: currentDraft.blockFingerprint,
     );
+  }
+
+  int _countWindowOverlap({
+    required List<String> currentTokens,
+    required List<String> previousTokens,
+  }) {
+    final remainingCounts = <String, int>{};
+    for (final token in previousTokens) {
+      remainingCounts.update(token, (count) => count + 1, ifAbsent: () => 1);
+    }
+
+    var overlapCount = 0;
+    for (final token in currentTokens) {
+      final remaining = remainingCounts[token] ?? 0;
+      if (remaining == 0) {
+        continue;
+      }
+
+      overlapCount++;
+      if (remaining == 1) {
+        remainingCounts.remove(token);
+      } else {
+        remainingCounts[token] = remaining - 1;
+      }
+    }
+
+    return overlapCount;
   }
 
   bool _hasMaterialCycleShift(
@@ -150,7 +187,8 @@ class CheckpointSavePolicyService {
       return true;
     }
 
-    if (currentDraft.sample.primaryRoleKey != lastCheckpoint.sample.primaryRoleKey) {
+    if (currentDraft.sample.primaryRoleKey !=
+        lastCheckpoint.sample.primaryRoleKey) {
       return true;
     }
 

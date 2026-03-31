@@ -10,7 +10,7 @@ class DotesApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Dotes',
-      theme: AppTheme.light(),
+      theme: AppTheme.dark(),
       initialRoute: AppRoutes.importPlayer,
       onGenerateRoute: AppRouter.onGenerateRoute,
     );

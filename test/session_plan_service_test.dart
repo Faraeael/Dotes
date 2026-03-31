@@ -8,6 +8,7 @@ import 'package:dotes/src/features/progress/domain/models/focus_follow_through_c
 import 'package:dotes/src/features/roles/domain/models/player_role.dart';
 import 'package:dotes/src/features/roles/domain/models/role_confidence.dart';
 import 'package:dotes/src/features/roles/domain/models/sample_role_summary.dart';
+import 'package:dotes/src/features/training_preferences/domain/models/training_preferences.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -62,7 +63,8 @@ void main() {
         ),
         nextGamesFocus: const NextGamesFocus(
           title: 'Next 5 games focus',
-          action: 'Keep deaths to 6 or fewer in each of the next 5 Carry games.',
+          action:
+              'Keep deaths to 6 or fewer in each of the next 5 Carry games.',
           sourceLabel: 'Early death risk',
           sourceType: CoachingInsightType.earlyDeathRisk,
         ),
@@ -86,11 +88,13 @@ void main() {
     test('builds a calm noisy-sample fallback plan', () {
       final plan = service.build(
         verdict: const DashboardVerdict(
-          fallbackMessage: 'Current sample is still too noisy for a strong verdict.',
+          fallbackMessage:
+              'Current sample is still too noisy for a strong verdict.',
         ),
         nextGamesFocus: const NextGamesFocus(
           title: 'Next 5 games focus',
-          action: 'Play 5 more games on one role and a 2-hero block before judging this sample.',
+          action:
+              'Play 5 more games on one role and a 2-hero block before judging this sample.',
           sourceLabel: 'Limited confidence',
           sourceType: CoachingInsightType.limitedConfidence,
         ),
@@ -125,7 +129,8 @@ void main() {
         ),
         nextGamesFocus: const NextGamesFocus(
           title: 'Next 5 games focus',
-          action: 'Limit the next 5 games to 2 heroes so the sample stays easier to read.',
+          action:
+              'Limit the next 5 games to 2 heroes so the sample stays easier to read.',
           sourceLabel: 'Hero pool spread',
           sourceType: CoachingInsightType.heroPoolSpread,
         ),
@@ -145,6 +150,38 @@ void main() {
       expect(plan.heroBlockHeroIds, [28, 129]);
       expect(plan.roleBlockKey, 'carry');
     });
+
+    test('manual role override affects the session plan', () {
+      final plan = service.build(
+        verdict: const DashboardVerdict(
+          fallbackMessage:
+              'Current sample is still too noisy for a strong verdict.',
+        ),
+        nextGamesFocus: const NextGamesFocus(
+          title: 'Next 5 games focus',
+          action:
+              'Play 5 more games on one role and a 2-hero block before judging this sample.',
+          sourceLabel: 'Limited confidence',
+          sourceType: CoachingInsightType.limitedConfidence,
+        ),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.tinySample,
+        ),
+        roleSummary: _mixedRoleSummary(),
+        followThroughCheck: const FocusFollowThroughCheck.waiting(
+          fallbackMessage: 'Need a bigger block before judging follow-through.',
+        ),
+        heroLabelFor: _heroLabelFor,
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          preferredRole: TrainingRolePreference.mid,
+        ),
+      );
+
+      expect(plan.queue, 'Mid only');
+      expect(plan.roleBlockKey, 'mid');
+      expect(plan.usesManualRoleSetup, isTrue);
+    });
   });
 }
 
@@ -162,7 +199,9 @@ ComfortCoreSummary _comfortCore({
   return ComfortCoreSummary(
     conclusionType: conclusionType,
     conclusion: 'Conclusion',
-    totalMatches: conclusionType == ComfortCoreConclusionType.tinySample ? 4 : 8,
+    totalMatches: conclusionType == ComfortCoreConclusionType.tinySample
+        ? 4
+        : 8,
     minimumMatches: 5,
     topHeroes: const [
       ComfortCoreHeroUsage(heroId: 28, matches: 4),

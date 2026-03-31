@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_card_header.dart';
+import '../../../../app/theme/app_theme_tokens.dart';
 import '../../../dashboard/presentation/widgets/section_card.dart';
 import 'checkpoint_follow_through_panel.dart';
 import '../../domain/models/focus_follow_through_check.dart';
@@ -31,8 +33,12 @@ class ProgressCheckCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Progress check', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
+            const AppCardHeader(
+              title: 'Progress check',
+              subtitle:
+                  'Compare the latest block to the one before it without losing the coaching read.',
+            ),
+            const SizedBox(height: 12),
             Text(
               progressCheck.isReady
                   ? progressCheck.subtitle
@@ -54,8 +60,9 @@ class ProgressCheckCard extends StatelessWidget {
               )
                 Padding(
                   padding: EdgeInsets.only(
-                    bottom:
-                        index == progressCheck.comparisons.length - 1 ? 0 : 12,
+                    bottom: index == progressCheck.comparisons.length - 1
+                        ? 0
+                        : 12,
                   ),
                   child: _ComparisonRow(
                     comparison: progressCheck.comparisons[index],
@@ -82,30 +89,62 @@ class _ComparisonRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: Text(
-            comparison.label,
-            style: theme.textTheme.titleMedium,
-          ),
+          child: Text(comparison.label, style: theme.textTheme.titleMedium),
         ),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
-              comparison.direction.label,
-              style: theme.textTheme.titleSmall,
-            ),
+            _ComparisonBadge(direction: comparison.direction),
             const SizedBox(height: 2),
             Text(
               comparison.detailLabel,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
               ),
               textAlign: TextAlign.end,
             ),
           ],
         ),
       ],
+    );
+  }
+}
+
+class _ComparisonBadge extends StatelessWidget {
+  const _ComparisonBadge({required this.direction});
+
+  final ProgressDirection direction;
+
+  static const _neutralGray = Color(0xFF6B7280);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = AppThemeTokens.of(context);
+    final color = switch (direction) {
+      ProgressDirection.up => tokens.positive,
+      ProgressDirection.down => tokens.negative,
+      ProgressDirection.same => _neutralGray,
+      ProgressDirection.narrower => tokens.positive,
+      ProgressDirection.wider => tokens.warning,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withAlpha(24),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withAlpha(72)),
+      ),
+      child: Text(
+        direction.label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

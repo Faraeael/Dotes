@@ -8,15 +8,18 @@ import '../../../roles/domain/models/player_role.dart';
 import '../../../roles/domain/services/role_inference_service.dart';
 import '../models/block_review.dart';
 import '../models/session_plan.dart';
+import 'reviewed_block_window_service.dart';
 
 class BlockReviewService {
   const BlockReviewService({
     RoleInferenceService roleInferenceService = const RoleInferenceService(),
-  }) : _roleInferenceService = roleInferenceService;
-
-  static const int _blockSize = 5;
+    ReviewedBlockWindowService reviewedBlockWindowService =
+        const ReviewedBlockWindowService(),
+  }) : _roleInferenceService = roleInferenceService,
+       _reviewedBlockWindowService = reviewedBlockWindowService;
 
   final RoleInferenceService _roleInferenceService;
+  final ReviewedBlockWindowService _reviewedBlockWindowService;
 
   BlockReview build({
     required CoachingCheckpoint previousCheckpoint,
@@ -29,7 +32,8 @@ class BlockReviewService {
       previousCheckpoint: previousCheckpoint,
       currentMatches: currentImport.recentMatches,
     );
-    final blockStatus = blockMatches.length >= _blockSize
+    final blockStatus =
+        blockMatches.length >= ReviewedBlockWindowService.blockSize
         ? BlockReviewStatus.completed
         : BlockReviewStatus.inProgress;
     final adherence = _judgeAdherence(
@@ -58,7 +62,7 @@ class BlockReviewService {
     return BlockReview(
       blockStatus: blockStatus,
       gamesLogged: blockMatches.length,
-      blockSize: _blockSize,
+      blockSize: ReviewedBlockWindowService.blockSize,
       adherence: adherence,
       targetResult: targetResult,
       overallOutcome: overallOutcome,
@@ -69,25 +73,10 @@ class BlockReviewService {
     required CoachingCheckpoint previousCheckpoint,
     required List<RecentMatch> currentMatches,
   }) {
-    final matches = currentMatches
-        .where((match) => match.startedAt.isAfter(previousCheckpoint.savedAt))
-        .toList()
-      ..sort(_compareMatchesByStartedAt);
-
-    if (matches.length <= _blockSize) {
-      return matches;
-    }
-
-    return matches.take(_blockSize).toList(growable: false);
-  }
-
-  int _compareMatchesByStartedAt(RecentMatch left, RecentMatch right) {
-    final startedAtCompare = left.startedAt.compareTo(right.startedAt);
-    if (startedAtCompare != 0) {
-      return startedAtCompare;
-    }
-
-    return left.matchId.compareTo(right.matchId);
+    return _reviewedBlockWindowService.build(
+      previousCheckpoint: previousCheckpoint,
+      currentMatches: currentMatches,
+    );
   }
 
   BlockReviewAdherence _judgeAdherence({
@@ -150,6 +139,11 @@ class BlockReviewService {
     required CoachingCheckpoint previousCheckpoint,
     required SessionPlan? sessionPlan,
   }) {
+    final savedTargetType = previousCheckpoint.savedSessionPlan?.targetType;
+    if (savedTargetType != null) {
+      return savedTargetType;
+    }
+
     return switch (previousCheckpoint.topInsightType) {
       CoachingInsightType.earlyDeathRisk => SessionPlanTargetType.deaths,
       CoachingInsightType.heroPoolSpread ||
@@ -211,10 +205,8 @@ class BlockReviewService {
       return BlockReviewTargetResult.flat;
     }
 
-    final currentAverageDeaths = blockMatches.fold<int>(
-          0,
-          (sum, match) => sum + match.deaths,
-        ) /
+    final currentAverageDeaths =
+        blockMatches.fold<int>(0, (sum, match) => sum + match.deaths) /
         blockMatches.length;
     final previousAverageDeaths = previousCheckpoint.sample.averageDeaths;
 
@@ -237,7 +229,7 @@ class BlockReviewService {
     final comparison = _comparisonFor(progressCheck, 'Hero pool');
     if (comparison != null &&
         progressCheck!.isReady &&
-        blockMatches.length >= _blockSize) {
+        blockMatches.length >= ReviewedBlockWindowService.blockSize) {
       return switch (comparison.direction) {
         ProgressDirection.narrower => BlockReviewTargetResult.improved,
         ProgressDirection.same => BlockReviewTargetResult.flat,
@@ -251,10 +243,13 @@ class BlockReviewService {
       return BlockReviewTargetResult.flat;
     }
 
-    final currentUniqueHeroes = blockMatches.map((match) => match.heroId).toSet().length;
+    final currentUniqueHeroes = blockMatches
+        .map((match) => match.heroId)
+        .toSet()
+        .length;
     final previousUniqueHeroes = previousCheckpoint.sample.uniqueHeroesPlayed;
 
-    if (blockMatches.length < _blockSize) {
+    if (blockMatches.length < ReviewedBlockWindowService.blockSize) {
       if (currentUniqueHeroes > previousUniqueHeroes) {
         return BlockReviewTargetResult.worse;
       }
@@ -305,9 +300,11 @@ class BlockReviewService {
     final currentWinRate =
         insideBlockMatches.where((match) => match.didWin).length /
         insideBlockMatches.length;
-    final previousWinRate =
-        previousCheckpoint.focusHeroBlock?.winRate ??
-        previousCheckpoint.sample.winRate;
+    final previousWinRate = _previousHeroBlockWinRate(
+      previousCheckpoint: previousCheckpoint,
+      sessionPlan: sessionPlan,
+      heroBlockIds: heroBlockIds,
+    );
 
     if (currentWinRate >= previousWinRate + 0.1) {
       return BlockReviewTargetResult.improved;
@@ -318,6 +315,34 @@ class BlockReviewService {
     }
 
     return BlockReviewTargetResult.flat;
+  }
+
+  double _previousHeroBlockWinRate({
+    required CoachingCheckpoint previousCheckpoint,
+    required SessionPlan? sessionPlan,
+    required List<int> heroBlockIds,
+  }) {
+    final savedSessionPlanHeroBlock = previousCheckpoint.savedSessionPlanHeroBlock;
+    if (savedSessionPlanHeroBlock != null) {
+      return savedSessionPlanHeroBlock.matches == 0
+          ? previousCheckpoint.sample.winRate
+          : savedSessionPlanHeroBlock.winRate;
+    }
+
+    if (sessionPlan?.usesManualHeroBlock == true) {
+      final previousBlockMatches = previousCheckpoint.sample.recentMatchesWindow
+          .where((match) => heroBlockIds.contains(match.heroId))
+          .toList(growable: false);
+      if (previousBlockMatches.isEmpty) {
+        return previousCheckpoint.sample.winRate;
+      }
+
+      final wins = previousBlockMatches.where((match) => match.didWin).length;
+      return wins / previousBlockMatches.length;
+    }
+
+    return previousCheckpoint.focusHeroBlock?.winRate ??
+        previousCheckpoint.sample.winRate;
   }
 
   BlockReviewOutcome _judgeOverallOutcome({
@@ -389,6 +414,16 @@ class BlockReviewService {
     required CoachingCheckpoint previousCheckpoint,
     required SessionPlan? sessionPlan,
   }) {
+    final savedSessionPlanHeroBlock = previousCheckpoint.savedSessionPlanHeroBlock;
+    if (savedSessionPlanHeroBlock != null &&
+        savedSessionPlanHeroBlock.heroIds.isNotEmpty) {
+      return savedSessionPlanHeroBlock.heroIds;
+    }
+
+    if (sessionPlan?.usesManualHeroBlock == true) {
+      return sessionPlan!.heroBlockHeroIds;
+    }
+
     final savedHeroBlock = previousCheckpoint.focusHeroBlock;
     if (savedHeroBlock != null && savedHeroBlock.heroIds.isNotEmpty) {
       return savedHeroBlock.heroIds;
@@ -405,6 +440,13 @@ class BlockReviewService {
     CoachingCheckpoint previousCheckpoint,
     SessionPlan? sessionPlan,
   ) {
+    final savedSessionPlanRole = _playerRoleForKey(
+      previousCheckpoint.savedSessionPlan?.roleBlockKey,
+    );
+    if (savedSessionPlanRole != null) {
+      return savedSessionPlanRole;
+    }
+
     final checkpointRole = _playerRoleForKey(
       _checkpointRoleBlockKey(previousCheckpoint),
     );

@@ -45,9 +45,9 @@ class ProgressCheck {
 
   String get subtitle {
     if (blockSize == null) {
-      return 'Waiting for a larger recent sample.';
+      return 'Waiting for a larger sample.';
     }
 
-    return 'Most recent $blockSize matches vs previous $blockSize.';
+    return 'Latest $blockSize matches vs previous $blockSize.';
   }
 }

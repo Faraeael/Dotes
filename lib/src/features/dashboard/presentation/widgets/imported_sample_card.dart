@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_card_header.dart';
+import '../../../../app/widgets/app_metric_grid.dart';
+import '../../../../app/widgets/app_metric_tile.dart';
+
 class ImportedSampleCard extends StatelessWidget {
   const ImportedSampleCard({
     required this.matchesAnalyzed,
@@ -34,49 +38,36 @@ class ImportedSampleCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Imported sample',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Quick read on the current imported match sample.',
-              style: Theme.of(context).textTheme.bodyMedium,
+            const AppCardHeader(
+              title: 'Current sample',
+              subtitle: 'Quick read on the current match sample.',
             ),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
+            AppMetricGrid(
               children: [
-                _SampleMetric(label: 'Matches', value: '$matchesAnalyzed'),
-                _SampleMetric(label: 'Wins', value: '$wins'),
-                _SampleMetric(label: 'Losses', value: '$losses'),
-                _SampleMetric(label: 'Win rate', value: winRateLabel),
-                _SampleMetric(
+                AppMetricTile(label: 'Matches', value: '$matchesAnalyzed'),
+                AppMetricTile(label: 'Wins', value: '$wins'),
+                AppMetricTile(label: 'Losses', value: '$losses'),
+                AppMetricTile(label: 'Win rate', value: winRateLabel),
+                AppMetricTile(
                   label: 'Unique heroes',
                   value: '$uniqueHeroesPlayed',
                 ),
                 if (mostPlayedHeroLabel != null)
-                  _SampleMetric(
+                  AppMetricTile(
                     label: 'Most played',
                     value: mostPlayedHeroLabel!,
                   ),
-                _SampleMetric(
-                  label: 'Likely role',
-                  value: primaryRoleLabel,
-                ),
+                AppMetricTile(label: 'Likely role', value: primaryRoleLabel),
               ],
             ),
             const SizedBox(height: 12),
             Text(
-              'Role estimate: $roleReadLabel',
+              'Role confidence: $roleReadLabel',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 4),
-            Text(
-              roleReasonLabel,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            Text(roleReasonLabel, style: Theme.of(context).textTheme.bodySmall),
             if (roleMixDetailsLabel != null) ...[
               const SizedBox(height: 4),
               Text(
@@ -88,44 +79,6 @@ class ImportedSampleCard extends StatelessWidget {
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SampleMetric extends StatelessWidget {
-  const _SampleMetric({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      constraints: const BoxConstraints(minWidth: 120),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(value, style: theme.textTheme.titleMedium),
-        ],
       ),
     );
   }

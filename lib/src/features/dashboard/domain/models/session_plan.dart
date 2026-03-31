@@ -1,8 +1,4 @@
-enum SessionPlanTargetType {
-  deaths,
-  heroPool,
-  comfortBlock,
-}
+enum SessionPlanTargetType { deaths, heroPool, comfortBlock }
 
 class SessionPlan {
   const SessionPlan({
@@ -13,6 +9,8 @@ class SessionPlan {
     required this.targetType,
     this.heroBlockHeroIds = const [],
     this.roleBlockKey,
+    this.usesManualRoleSetup = false,
+    this.usesManualHeroBlock = false,
   });
 
   final String queue;
@@ -22,6 +20,8 @@ class SessionPlan {
   final SessionPlanTargetType targetType;
   final List<int> heroBlockHeroIds;
   final String? roleBlockKey;
+  final bool usesManualRoleSetup;
+  final bool usesManualHeroBlock;
 
   bool get hasHeroSpecificBlock => heroBlockHeroIds.isNotEmpty;
 

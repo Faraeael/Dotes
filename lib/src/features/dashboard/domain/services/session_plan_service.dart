@@ -1,7 +1,9 @@
 import '../../../insights/domain/models/coaching_insight.dart';
 import '../../../insights/domain/models/next_games_focus.dart';
 import '../../../progress/domain/models/focus_follow_through_check.dart';
+import '../../../roles/domain/models/player_role.dart';
 import '../../../roles/domain/models/sample_role_summary.dart';
+import '../../../training_preferences/domain/models/training_preferences.dart';
 import '../models/comfort_core_summary.dart';
 import '../models/dashboard_verdict.dart';
 import '../models/session_plan.dart';
@@ -16,21 +18,32 @@ class SessionPlanService {
     required SampleRoleSummary? roleSummary,
     required FocusFollowThroughCheck? followThroughCheck,
     String Function(int heroId)? heroLabelFor,
+    TrainingPreferences trainingPreferences = const TrainingPreferences(),
   }) {
+    final preferredRole = trainingPreferences.activePreferredRole;
     final isNoisySample = _isNoisySample(
       verdict: verdict,
       nextGamesFocus: nextGamesFocus,
       comfortCore: comfortCore,
     );
-    final namedHeroBlock = _namedHeroBlockLabel(
-      nextGamesFocus: nextGamesFocus,
-      comfortCore: comfortCore,
-      heroLabelFor: heroLabelFor,
+    final manualHeroBlock = _lockedHeroBlockLabel(
+      trainingPreferences,
+      heroLabelFor,
     );
-    final namedHeroBlockIds = _namedHeroBlockIds(
-      nextGamesFocus: nextGamesFocus,
-      comfortCore: comfortCore,
-    );
+    final namedHeroBlock =
+        manualHeroBlock ??
+        _namedHeroBlockLabel(
+          nextGamesFocus: nextGamesFocus,
+          comfortCore: comfortCore,
+          heroLabelFor: heroLabelFor,
+        );
+    final manualHeroBlockIds = trainingPreferences.activeLockedHeroIds;
+    final namedHeroBlockIds = manualHeroBlockIds.isNotEmpty
+        ? manualHeroBlockIds
+        : _namedHeroBlockIds(
+            nextGamesFocus: nextGamesFocus,
+            comfortCore: comfortCore,
+          );
     final targetType = _targetType(
       verdict: verdict,
       nextGamesFocus: nextGamesFocus,
@@ -41,10 +54,15 @@ class SessionPlanService {
     final roleBlockKey = _roleBlockKey(
       roleSummary,
       isNoisySample: isNoisySample,
+      preferredRole: preferredRole,
     );
 
     return SessionPlan(
-      queue: _queueLabel(roleSummary, isNoisySample: isNoisySample),
+      queue: _queueLabel(
+        roleSummary,
+        isNoisySample: isNoisySample,
+        preferredRole: preferredRole,
+      ),
       heroBlock: _heroBlockLabel(
         namedHeroBlock: namedHeroBlock,
         nextGamesFocus: nextGamesFocus,
@@ -63,6 +81,8 @@ class SessionPlanService {
       targetType: targetType,
       heroBlockHeroIds: namedHeroBlockIds,
       roleBlockKey: roleBlockKey,
+      usesManualRoleSetup: preferredRole != null,
+      usesManualHeroBlock: manualHeroBlockIds.isNotEmpty,
     );
   }
 
@@ -85,7 +105,12 @@ class SessionPlanService {
   String _queueLabel(
     SampleRoleSummary? roleSummary, {
     required bool isNoisySample,
+    required PlayerRole? preferredRole,
   }) {
+    if (preferredRole != null) {
+      return '${preferredRole.label} only';
+    }
+
     final trustedRoleLabel = roleSummary?.trustedRoleLabelForFocus;
     if (!isNoisySample && trustedRoleLabel != null) {
       return '$trustedRoleLabel only';
@@ -97,7 +122,12 @@ class SessionPlanService {
   String? _roleBlockKey(
     SampleRoleSummary? roleSummary, {
     required bool isNoisySample,
+    required PlayerRole? preferredRole,
   }) {
+    if (preferredRole != null) {
+      return preferredRole.name;
+    }
+
     if (isNoisySample || roleSummary?.hasTrustedPrimaryRoleForFocus != true) {
       return null;
     }
@@ -131,6 +161,26 @@ class SessionPlanService {
     return '2 heroes max';
   }
 
+  String? _lockedHeroBlockLabel(
+    TrainingPreferences trainingPreferences,
+    String Function(int heroId)? heroLabelFor,
+  ) {
+    final heroIds = trainingPreferences.activeLockedHeroIds;
+    if (heroIds.isEmpty || heroLabelFor == null) {
+      return null;
+    }
+
+    final heroLabels = heroIds
+        .map((heroId) => heroLabelFor(heroId).trim())
+        .where((label) => label.isNotEmpty)
+        .toList(growable: false);
+    if (heroLabels.length != heroIds.length) {
+      return null;
+    }
+
+    return _heroBlockLabelFromNames(heroLabels);
+  }
+
   String _targetLabel({
     required DashboardVerdict? verdict,
     required NextGamesFocus? nextGamesFocus,
@@ -158,17 +208,22 @@ class SessionPlanService {
 
     return switch (nextGamesFocus?.sourceType) {
       CoachingInsightType.heroPoolSpread =>
-        hasNamedHeroBlock ? 'stay on this 2-hero block' : 'keep the pool to 2 heroes',
+        hasNamedHeroBlock
+            ? 'stay on this 2-hero block'
+            : 'keep the pool to 2 heroes',
       CoachingInsightType.specializationRecommendation =>
         'make the sample easier to read',
       CoachingInsightType.comfortHeroDependence =>
-        hasNamedHeroBlock ? 'stay inside the block' : 'compare results inside the block',
+        hasNamedHeroBlock
+            ? 'stay inside the block'
+            : 'compare results inside the block',
       CoachingInsightType.weakRecentTrend => 'stabilize the next block',
       CoachingInsightType.limitedConfidence => 'build a cleaner sample',
       CoachingInsightType.earlyDeathRisk => 'keep deaths to 6 or fewer',
-      null => verdict?.biggestLeak == null && verdict?.biggestEdge != null
-          ? 'hold the clean edge'
-          : 'keep the block easy to review',
+      null =>
+        verdict?.biggestLeak == null && verdict?.biggestEdge != null
+            ? 'hold the clean edge'
+            : 'keep the block easy to review',
     };
   }
 
@@ -189,16 +244,12 @@ class SessionPlanService {
 
     if (hasNamedHeroBlock || _hasStableComfortBlock(comfortCore)) {
       return switch (nextGamesFocus?.sourceType) {
-        CoachingInsightType.heroPoolSpread =>
-          SessionPlanTargetType.heroPool,
+        CoachingInsightType.heroPoolSpread => SessionPlanTargetType.heroPool,
         CoachingInsightType.specializationRecommendation =>
           SessionPlanTargetType.heroPool,
-        CoachingInsightType.weakRecentTrend =>
-          SessionPlanTargetType.heroPool,
-        CoachingInsightType.limitedConfidence =>
-          SessionPlanTargetType.heroPool,
-        CoachingInsightType.earlyDeathRisk =>
-          SessionPlanTargetType.deaths,
+        CoachingInsightType.weakRecentTrend => SessionPlanTargetType.heroPool,
+        CoachingInsightType.limitedConfidence => SessionPlanTargetType.heroPool,
+        CoachingInsightType.earlyDeathRisk => SessionPlanTargetType.deaths,
         CoachingInsightType.comfortHeroDependence ||
         null => SessionPlanTargetType.comfortBlock,
       };

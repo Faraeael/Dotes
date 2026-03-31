@@ -9,10 +9,12 @@ import 'match_info_chip.dart';
 class MatchesOverviewCard extends StatelessWidget {
   const MatchesOverviewCard({
     required this.recentMatches,
+    required this.onSelectHero,
     super.key,
   });
 
   final List<RecentMatch> recentMatches;
+  final ValueChanged<int> onSelectHero;
 
   @override
   Widget build(BuildContext context) {
@@ -21,8 +23,7 @@ class MatchesOverviewCard extends StatelessWidget {
     if (visibleMatches.isEmpty) {
       return const SectionCard(
         title: 'Recent matches',
-        body:
-            'No recent matches are available from OpenDota for this account yet.',
+        body: 'No recent matches from OpenDota yet.',
       );
     }
 
@@ -38,7 +39,10 @@ class MatchesOverviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             for (var index = 0; index < visibleMatches.length; index++) ...[
-              _MatchRow(match: visibleMatches[index]),
+              _MatchRow(
+                match: visibleMatches[index],
+                onTap: () => onSelectHero(visibleMatches[index].heroId),
+              ),
               if (index < visibleMatches.length - 1) const Divider(height: 24),
             ],
           ],
@@ -49,9 +53,10 @@ class MatchesOverviewCard extends StatelessWidget {
 }
 
 class _MatchRow extends StatelessWidget {
-  const _MatchRow({required this.match});
+  const _MatchRow({required this.match, required this.onTap});
 
   final RecentMatch match;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -61,56 +66,53 @@ class _MatchRow extends StatelessWidget {
         : theme.colorScheme.errorContainer;
     final resultLabel = match.didWin ? 'Win' : 'Loss';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                heroDisplayName(match.heroId),
-                style: theme.textTheme.titleMedium,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    heroDisplayName(match.heroId),
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    formatMatchDateTime(match.startedAt),
+                    style: theme.textTheme.bodySmall,
+                    textAlign: TextAlign.end,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Text(
-                formatMatchDateTime(match.startedAt),
-                style: theme.textTheme.bodySmall,
-                textAlign: TextAlign.end,
-              ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                MatchInfoChip(
+                  label: 'Result',
+                  value: resultLabel,
+                  backgroundColor: resultColor,
+                ),
+                MatchInfoChip(label: 'KDA', value: match.kdaLine),
+                MatchInfoChip(
+                  label: 'Duration',
+                  value: formatMatchDuration(match.duration),
+                ),
+              ],
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            MatchInfoChip(
-              label: 'Result',
-              value: resultLabel,
-              backgroundColor: resultColor,
-            ),
-            MatchInfoChip(
-              label: 'KDA',
-              value: match.kdaLine,
-            ),
-            MatchInfoChip(
-              label: 'Duration',
-              value: formatMatchDuration(match.duration),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Match #${match.matchId}',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

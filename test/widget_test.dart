@@ -5,6 +5,7 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,11 +15,13 @@ void main() {
   testWidgets('shows the player import screen on launch', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(
-      const ProviderScope(child: DotesApp()),
-    );
+    await tester.pumpWidget(const ProviderScope(child: DotesApp()));
 
     expect(find.text('Dota account ID'), findsOneWidget);
-    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text('Load dashboard'), findsOneWidget);
+    expect(find.text('Import player'), findsOneWidget);
+
+    final appBar = tester.widget<AppBar>(find.byType(AppBar));
+    expect((appBar.title as Text).data, 'Dotes');
   });
 }

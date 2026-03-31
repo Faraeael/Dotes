@@ -5,6 +5,7 @@ import '../../matches/presentation/utils/hero_labels.dart';
 import '../../player_import/application/imported_player_provider.dart';
 import '../../progress/application/progress_check_provider.dart';
 import '../../roles/application/sample_role_summary_provider.dart';
+import '../../training_preferences/application/training_preferences_providers.dart';
 import '../domain/models/session_plan.dart';
 import '../domain/services/session_plan_service.dart';
 import 'comfort_core_provider.dart';
@@ -28,5 +29,6 @@ final sessionPlanProvider = Provider<SessionPlan?>((ref) {
     roleSummary: ref.watch(sampleRoleSummaryProvider),
     followThroughCheck: ref.watch(focusFollowThroughProvider),
     heroLabelFor: heroDisplayName,
+    trainingPreferences: ref.watch(currentTrainingPreferencesProvider),
   );
 });

@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/result/result.dart';
 import '../../checkpoints/application/coaching_checkpoint_providers.dart';
+import '../../tester_feedback/application/tester_feedback_providers.dart';
+import '../../training_preferences/application/training_preferences_providers.dart';
 import '../data/repositories/opendota_player_repository.dart';
 import '../domain/models/imported_player_data.dart';
 import '../domain/repositories/player_import_repository.dart';
@@ -22,6 +24,8 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
 
   void reset() {
     _clearCheckpointSession();
+    _clearTesterFeedbackSession();
+    _clearTrainingPreferencesSession();
     _clearImportedPlayer();
     state = const PlayerImportState();
   }
@@ -42,6 +46,8 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
 
     final trimmed = _normalizePlayerId(state.playerId);
     _clearCheckpointSession();
+    _clearTesterFeedbackSession();
+    _clearTrainingPreferencesSession();
     _clearImportedPlayer();
 
     final errorMessage = _validatePlayerId(trimmed);
@@ -62,7 +68,9 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
     );
 
     try {
-      final profileResult = await _repository.fetchPlayerProfileSummary(trimmed);
+      final profileResult = await _repository.fetchPlayerProfileSummary(
+        trimmed,
+      );
       switch (profileResult) {
         case Failure():
           state = state.copyWith(
@@ -89,6 +97,12 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
               await _ref
                   .read(checkpointPersistenceControllerProvider)
                   .loadPreviousForAccount(importedPlayer.profile.accountId);
+              await _ref
+                  .read(testerFeedbackControllerProvider)
+                  .loadForAccount(importedPlayer.profile.accountId);
+              await _ref
+                  .read(trainingPreferencesControllerProvider)
+                  .loadForAccount(importedPlayer.profile.accountId);
               _ref.read(importedPlayerProvider.notifier).state = importedPlayer;
               state = state.copyWith(
                 playerId: trimmed,
@@ -102,7 +116,7 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
       state = state.copyWith(
         playerId: trimmed,
         errorMessage:
-            'Something unexpected happened while importing this player.',
+            'Something went wrong while importing this player.',
         isSubmitting: false,
       );
       return false;
@@ -121,18 +135,26 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
     _ref.read(checkpointPersistenceControllerProvider).clearSession();
   }
 
+  void _clearTesterFeedbackSession() {
+    _ref.read(testerFeedbackControllerProvider).clearSession();
+  }
+
+  void _clearTrainingPreferencesSession() {
+    _ref.read(trainingPreferencesControllerProvider).clearSession();
+  }
+
   String? _validatePlayerId(String value) {
     if (value.isEmpty) {
-      return 'Enter a player or account ID to continue.';
+      return 'Enter a player or account ID.';
     }
 
     final digitsOnly = RegExp(r'^\d+$');
     if (!digitsOnly.hasMatch(value)) {
-      return 'Player IDs should contain digits only.';
+      return 'Use digits only.';
     }
 
     if (value.length < 4 || value.length > 20) {
-      return 'Use an ID between 4 and 20 digits.';
+      return 'Use 4 to 20 digits.';
     }
 
     return null;

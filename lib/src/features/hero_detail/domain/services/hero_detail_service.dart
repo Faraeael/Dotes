@@ -1,0 +1,351 @@
+import '../../../checkpoints/domain/models/coaching_checkpoint.dart';
+import '../../../dashboard/domain/models/comfort_core_summary.dart';
+import '../../../dashboard/domain/models/block_review.dart';
+import '../../../dashboard/domain/models/session_plan.dart';
+import '../../../dashboard/domain/services/reviewed_block_window_service.dart';
+import '../../../player_import/domain/models/recent_match.dart';
+import '../models/hero_detail.dart';
+
+class HeroDetailService {
+  const HeroDetailService({
+    ReviewedBlockWindowService reviewedBlockWindowService =
+        const ReviewedBlockWindowService(),
+  }) : _reviewedBlockWindowService = reviewedBlockWindowService;
+
+  static const int minimumMatchesForStrongRead = 3;
+  static const int _minimumHeroHistoryMatches = 2;
+  static const double _strongerPickMargin = 0.1;
+  static const double _weakerBlockMargin = 0.15;
+  static const double _heroTrendMargin = 0.1;
+
+  final ReviewedBlockWindowService _reviewedBlockWindowService;
+
+  HeroDetail build({
+    required int heroId,
+    required List<RecentMatch> allMatches,
+    required String Function(int heroId) heroLabelFor,
+    ComfortCoreSummary? comfortCore,
+    SessionPlan? sessionPlan,
+    CoachingCheckpoint? previousCheckpoint,
+    BlockReview? blockReview,
+  }) {
+    final heroMatches = allMatches
+        .where((match) => match.heroId == heroId)
+        .toList(growable: false);
+    final sortedHeroMatches = heroMatches.toList()
+      ..sort((left, right) {
+        final startedAtCompare = right.startedAt.compareTo(left.startedAt);
+        if (startedAtCompare != 0) {
+          return startedAtCompare;
+        }
+
+        return right.matchId.compareTo(left.matchId);
+      });
+
+    final wins = heroMatches.where((match) => match.didWin).length;
+    final losses = heroMatches.length - wins;
+    final heroWinRate = heroMatches.isEmpty ? 0.0 : wins / heroMatches.length;
+    final stableComfortCoreHeroIds = _stableComfortCoreHeroIds(comfortCore);
+    final planHeroIds = sessionPlan?.heroBlockHeroIds ?? const <int>[];
+    final hasNamedHeroBlock = planHeroIds.isNotEmpty;
+    final isInComfortCore = stableComfortCoreHeroIds.contains(heroId);
+    final isInCurrentPlan = planHeroIds.contains(heroId);
+    final isOutsideCurrentPlan = hasNamedHeroBlock && !isInCurrentPlan;
+    final benchmarkHeroIds = hasNamedHeroBlock
+        ? planHeroIds
+        : stableComfortCoreHeroIds;
+    final benchmarkWinRate = _combinedWinRate(allMatches, benchmarkHeroIds);
+    final overallWinRate =
+        _combinedWinRate(
+          allMatches,
+          allMatches.map((match) => match.heroId).toSet().toList(),
+        ) ??
+        0.0;
+    final hasStrongRead = heroMatches.length >= minimumMatchesForStrongRead;
+    final isStrongerRecentPick =
+        hasStrongRead && heroWinRate >= overallWinRate + _strongerPickMargin;
+    final isWeakerThanTopBlock =
+        hasStrongRead &&
+        benchmarkWinRate != null &&
+        !benchmarkHeroIds.contains(heroId) &&
+        heroWinRate <= benchmarkWinRate - _weakerBlockMargin;
+    final tags = _buildTags(
+      isInComfortCore: isInComfortCore,
+      isInCurrentPlan: isInCurrentPlan,
+      isOutsideCurrentPlan: isOutsideCurrentPlan,
+    );
+
+    return HeroDetail(
+      heroId: heroId,
+      heroName: heroLabelFor(heroId),
+      matchesInSample: heroMatches.length,
+      wins: wins,
+      losses: losses,
+      winRatePercentage: (heroWinRate * 100).round(),
+      averageDeaths: _averageDouble(
+        heroMatches.map((match) => match.deaths.toDouble()),
+      ),
+      averageKda: _averageDouble(heroMatches.map(_kdaRatio)),
+      averageMatchDuration: _averageDuration(
+        heroMatches.map((match) => match.duration),
+      ),
+      tags: tags,
+      coachingRead: _coachingRead(
+        hasStrongRead: hasStrongRead,
+        isInComfortCore: isInComfortCore,
+        isInCurrentPlan: isInCurrentPlan,
+        isOutsideCurrentPlan: isOutsideCurrentPlan,
+        isStrongerRecentPick: isStrongerRecentPick,
+        isWeakerThanTopBlock: isWeakerThanTopBlock,
+      ),
+      trainingDecision: _trainingDecision(
+        hasStrongRead: hasStrongRead,
+        isInComfortCore: isInComfortCore,
+        isInCurrentPlan: isInCurrentPlan,
+        isStrongerRecentPick: isStrongerRecentPick,
+        isOutsideCurrentPlan: isOutsideCurrentPlan,
+        isWeakerThanTopBlock: isWeakerThanTopBlock,
+      ),
+      blockContext: _blockContext(
+        heroId: heroId,
+        allMatches: allMatches,
+        previousCheckpoint: previousCheckpoint,
+        blockReview: blockReview,
+      ),
+      recentMatches: sortedHeroMatches,
+    );
+  }
+
+  HeroBlockContext? _blockContext({
+    required int heroId,
+    required List<RecentMatch> allMatches,
+    required CoachingCheckpoint? previousCheckpoint,
+    required BlockReview? blockReview,
+  }) {
+    if (previousCheckpoint == null || blockReview == null) {
+      return null;
+    }
+
+    final reviewedBlock = _reviewedBlockWindowService.build(
+      previousCheckpoint: previousCheckpoint,
+      currentMatches: allMatches,
+    );
+    final reviewedHeroMatches = reviewedBlock
+        .where((match) => match.heroId == heroId)
+        .toList(growable: false);
+    final baselineMatches = previousCheckpoint.sample.recentMatchesWindow
+        .where((match) => match.heroId == heroId)
+        .toList(growable: false);
+    final lastPlanStatus = _lastPlanStatus(previousCheckpoint, heroId);
+    final trendStatus = _heroTrendStatus(
+      baselineMatches: baselineMatches,
+      reviewedBlockMatches: reviewedHeroMatches,
+    );
+
+    return HeroBlockContext(
+      lastPlanStatus: lastPlanStatus,
+      reviewedBlockAppearances: reviewedHeroMatches.length,
+      reviewedBlockGames: blockReview.gamesLogged,
+      trendStatus: trendStatus,
+      trendDetail: _trendDetail(trendStatus),
+    );
+  }
+
+  List<HeroDetailTag> _buildTags({
+    required bool isInComfortCore,
+    required bool isInCurrentPlan,
+    required bool isOutsideCurrentPlan,
+  }) {
+    final tags = <HeroDetailTag>[];
+    if (isInComfortCore) {
+      tags.add(HeroDetailTag.comfortCore);
+    }
+    if (isInCurrentPlan) {
+      tags.add(HeroDetailTag.inCurrentPlan);
+    }
+    if (isOutsideCurrentPlan) {
+      tags.add(HeroDetailTag.outsideCurrentPlan);
+    }
+
+    return tags;
+  }
+
+  HeroLastPlanStatus _lastPlanStatus(
+    CoachingCheckpoint previousCheckpoint,
+    int heroId,
+  ) {
+    final savedHeroBlock =
+        previousCheckpoint.savedSessionPlanHeroBlock ??
+        previousCheckpoint.focusHeroBlock;
+    if (savedHeroBlock == null || savedHeroBlock.heroIds.isEmpty) {
+      return HeroLastPlanStatus.noNamedHeroBlock;
+    }
+
+    return savedHeroBlock.heroIds.contains(heroId)
+        ? HeroLastPlanStatus.inLastNamedBlock
+        : HeroLastPlanStatus.outsideLastNamedBlock;
+  }
+
+  HeroBlockTrendStatus _heroTrendStatus({
+    required List<CoachingCheckpointMatchSummary> baselineMatches,
+    required List<RecentMatch> reviewedBlockMatches,
+  }) {
+    if (baselineMatches.length < _minimumHeroHistoryMatches ||
+        reviewedBlockMatches.length < _minimumHeroHistoryMatches) {
+      return HeroBlockTrendStatus.notEnoughHistory;
+    }
+
+    final baselineWinRate =
+        baselineMatches.where((match) => match.didWin).length /
+        baselineMatches.length;
+    final currentWinRate =
+        reviewedBlockMatches.where((match) => match.didWin).length /
+        reviewedBlockMatches.length;
+
+    if (currentWinRate >= baselineWinRate + _heroTrendMargin) {
+      return HeroBlockTrendStatus.improved;
+    }
+
+    if (currentWinRate <= baselineWinRate - _heroTrendMargin) {
+      return HeroBlockTrendStatus.worse;
+    }
+
+    return HeroBlockTrendStatus.flat;
+  }
+
+  String _trendDetail(HeroBlockTrendStatus trendStatus) {
+    return switch (trendStatus) {
+      HeroBlockTrendStatus.improved ||
+      HeroBlockTrendStatus.flat ||
+      HeroBlockTrendStatus.worse =>
+        'Compared against the last checkpoint window.',
+      HeroBlockTrendStatus.notEnoughHistory =>
+        'Need at least 2 baseline and 2 block games on this hero.',
+    };
+  }
+
+  List<int> _stableComfortCoreHeroIds(ComfortCoreSummary? comfortCore) {
+    if (comfortCore == null || !comfortCore.isReady) {
+      return const [];
+    }
+
+    final hasStableBlock =
+        comfortCore.conclusionType ==
+            ComfortCoreConclusionType.successInsideCore ||
+        comfortCore.conclusionType == ComfortCoreConclusionType.outsideWeaker;
+    if (!hasStableBlock) {
+      return const [];
+    }
+
+    return comfortCore.topHeroes
+        .map((hero) => hero.heroId)
+        .toList(growable: false);
+  }
+
+  double? _combinedWinRate(List<RecentMatch> matches, List<int> heroIds) {
+    if (heroIds.isEmpty) {
+      return null;
+    }
+
+    final heroIdSet = heroIds.toSet();
+    final filteredMatches = matches
+        .where((match) => heroIdSet.contains(match.heroId))
+        .toList(growable: false);
+    if (filteredMatches.isEmpty) {
+      return null;
+    }
+
+    final wins = filteredMatches.where((match) => match.didWin).length;
+    return wins / filteredMatches.length;
+  }
+
+  double _kdaRatio(RecentMatch match) {
+    final deaths = match.deaths == 0 ? 1 : match.deaths;
+    return (match.kills + match.assists) / deaths;
+  }
+
+  double? _averageDouble(Iterable<double> values) {
+    final list = values.toList(growable: false);
+    if (list.isEmpty) {
+      return null;
+    }
+
+    final total = list.fold<double>(0, (sum, value) => sum + value);
+    return total / list.length;
+  }
+
+  Duration? _averageDuration(Iterable<Duration> durations) {
+    final list = durations.toList(growable: false);
+    if (list.isEmpty) {
+      return null;
+    }
+
+    final totalSeconds = list.fold<int>(
+      0,
+      (sum, duration) => sum + duration.inSeconds,
+    );
+    return Duration(seconds: (totalSeconds / list.length).round());
+  }
+
+  String _coachingRead({
+    required bool hasStrongRead,
+    required bool isInComfortCore,
+    required bool isInCurrentPlan,
+    required bool isOutsideCurrentPlan,
+    required bool isStrongerRecentPick,
+    required bool isWeakerThanTopBlock,
+  }) {
+    if (!hasStrongRead) {
+      return 'Too little recent data for a strong read.';
+    }
+
+    if (isInCurrentPlan && !isInComfortCore) {
+      return 'This hero is currently in your session plan.';
+    }
+
+    if (isInComfortCore) {
+      return 'This hero is currently part of your comfort core.';
+    }
+
+    if (isWeakerThanTopBlock) {
+      return 'Results on this hero are weaker than your top block.';
+    }
+
+    if (isStrongerRecentPick) {
+      return 'This hero is one of your stronger recent picks.';
+    }
+
+    if (isOutsideCurrentPlan) {
+      return 'This hero sits outside the current plan for now.';
+    }
+
+    return 'This hero is not giving a strong recent signal yet.';
+  }
+
+  HeroTrainingDecision _trainingDecision({
+    required bool hasStrongRead,
+    required bool isInComfortCore,
+    required bool isInCurrentPlan,
+    required bool isStrongerRecentPick,
+    required bool isOutsideCurrentPlan,
+    required bool isWeakerThanTopBlock,
+  }) {
+    if (!hasStrongRead) {
+      return HeroTrainingDecision.tooLittleData;
+    }
+
+    if (isInCurrentPlan) {
+      return HeroTrainingDecision.keepInBlock;
+    }
+
+    if (isInComfortCore || isStrongerRecentPick) {
+      return HeroTrainingDecision.goodBackupHero;
+    }
+
+    if (isOutsideCurrentPlan || isWeakerThanTopBlock) {
+      return HeroTrainingDecision.testLaterNotNow;
+    }
+
+    return HeroTrainingDecision.testLaterNotNow;
+  }
+}

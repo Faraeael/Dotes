@@ -8,10 +8,27 @@ class FocusFollowThroughService {
   FocusFollowThroughCheck build({
     required CoachingCheckpoint previousCheckpoint,
     required CoachingCheckpointSample currentSample,
+    List<int> manualHeroBlockIds = const [],
+    List<String> manualHeroBlockLabels = const [],
   }) {
+    final savedHeroBlock = previousCheckpoint.savedSessionPlanHeroBlock;
+    final manualHeroBlock = savedHeroBlock == null
+        ? _manualHeroBlock(
+            previousCheckpoint: previousCheckpoint,
+            manualHeroBlockIds: manualHeroBlockIds,
+            manualHeroBlockLabels: manualHeroBlockLabels,
+          )
+        : null;
     final checkpointSavedAt = previousCheckpoint.savedAt;
-    final previousFocusLabel = _previousFocusLabel(previousCheckpoint);
-    final comparisonLabel = _comparisonLabel(previousCheckpoint);
+    final previousFocusLabel =
+        savedHeroBlock?.label ??
+        manualHeroBlock?.label ??
+        _previousFocusLabel(previousCheckpoint);
+    final comparisonLabel = savedHeroBlock != null
+        ? 'Compared against the active 5-game block on staying inside the ${savedHeroBlock.label}.'
+        : manualHeroBlock == null
+        ? _comparisonLabel(previousCheckpoint)
+        : 'Compared against your active manual setup on staying inside the ${manualHeroBlock.label}.';
 
     if (previousCheckpoint.sample.matchesAnalyzed < 5 ||
         currentSample.matchesAnalyzed < 5) {
@@ -23,7 +40,8 @@ class FocusFollowThroughService {
       );
     }
 
-    final previousHeroBlock = previousCheckpoint.focusHeroBlock;
+    final previousHeroBlock =
+        savedHeroBlock ?? manualHeroBlock ?? previousCheckpoint.focusHeroBlock;
     if (previousHeroBlock != null && previousHeroBlock.heroIds.isNotEmpty) {
       if (currentSample.recentMatchesWindow.length < 5) {
         return FocusFollowThroughCheck.waiting(
@@ -40,6 +58,11 @@ class FocusFollowThroughService {
         checkpointSavedAt: checkpointSavedAt,
         previousFocusLabel: previousFocusLabel,
         comparisonLabel: comparisonLabel,
+        blockDescriptor: savedHeroBlock != null
+            ? 'the active 5-game block'
+            : manualHeroBlock == null
+            ? 'the last recommended hero block'
+            : 'your active manual hero block',
       );
     }
 
@@ -81,10 +104,11 @@ class FocusFollowThroughService {
     required DateTime checkpointSavedAt,
     required String previousFocusLabel,
     required String comparisonLabel,
+    required String blockDescriptor,
   }) {
-    final recentWindow = currentSample.recentMatchesWindow.take(5).toList(
-      growable: false,
-    );
+    final recentWindow = currentSample.recentMatchesWindow
+        .take(5)
+        .toList(growable: false);
     final insideBlockMatches = recentWindow
         .where((match) => previousHeroBlock.heroIds.contains(match.heroId))
         .toList(growable: false);
@@ -128,8 +152,8 @@ class FocusFollowThroughService {
     }
 
     final detail = insideBlockCount == 0
-        ? 'You drifted outside the last recommended hero block.'
-        : 'You drifted outside the last recommended hero block. Only 1 of the last 5 games stayed in the ${previousHeroBlock.label}.';
+        ? 'You drifted outside $blockDescriptor.'
+        : 'You drifted outside $blockDescriptor. Only 1 of the last 5 games stayed in the ${previousHeroBlock.label}.';
 
     return FocusFollowThroughCheck.ready(
       status: FocusFollowThroughStatus.offTrack,
@@ -330,6 +354,29 @@ class FocusFollowThroughService {
         'Compared against your last saved focus on building a clearer sample before judging results.',
       null => 'Compared against your last saved coaching focus.',
     };
+  }
+
+  CoachingCheckpointHeroBlock? _manualHeroBlock({
+    required CoachingCheckpoint previousCheckpoint,
+    required List<int> manualHeroBlockIds,
+    required List<String> manualHeroBlockLabels,
+  }) {
+    if (manualHeroBlockIds.isEmpty ||
+        manualHeroBlockIds.length != manualHeroBlockLabels.length) {
+      return null;
+    }
+
+    final previousBlockMatches = previousCheckpoint.sample.recentMatchesWindow
+        .where((match) => manualHeroBlockIds.contains(match.heroId))
+        .toList(growable: false);
+    final wins = previousBlockMatches.where((match) => match.didWin).length;
+
+    return CoachingCheckpointHeroBlock(
+      heroIds: manualHeroBlockIds,
+      heroLabels: manualHeroBlockLabels,
+      wins: wins,
+      losses: previousBlockMatches.length - wins,
+    );
   }
 
   _RoleConsistencySignal _roleConsistencySignal(

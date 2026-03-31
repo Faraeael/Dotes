@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../app/widgets/app_card_header.dart';
+
 class PlayerIdForm extends StatelessWidget {
   const PlayerIdForm({
     required this.controller,
@@ -29,11 +31,10 @@ class PlayerIdForm extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Import player', style: theme.textTheme.headlineMedium),
-            const SizedBox(height: 12),
-            Text(
-              'Enter a Dota account ID to start the first dashboard flow.',
-              style: theme.textTheme.bodyLarge,
+            const AppCardHeader(
+              title: 'Import player',
+              subtitle:
+                  'Enter a Dota account ID to load your latest sample and build the coaching loop.',
             ),
             const SizedBox(height: 24),
             TextField(
@@ -79,7 +80,7 @@ class PlayerIdForm extends StatelessWidget {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Continue'),
+                    : const Text('Load dashboard'),
               ),
             ),
           ],

@@ -52,100 +52,109 @@ void main() {
       expect(followThroughCheck.detail, 'Your hero pool stayed at 4 heroes.');
     });
 
-    test('judges named hero-block focus as on track when the player stays inside it', () {
-      final followThroughCheck = service.build(
-        previousCheckpoint: _checkpoint(
-          topInsightType: CoachingInsightType.comfortHeroDependence,
-          focusSourceLabel: 'Comfort hero dependence',
-          focusHeroBlock: _heroBlock(
-            heroIds: const [28, 129],
-            heroLabels: const ['Slardar', 'Mars'],
-            wins: 3,
-            losses: 2,
+    test(
+      'judges named hero-block focus as on track when the player stays inside it',
+      () {
+        final followThroughCheck = service.build(
+          previousCheckpoint: _checkpoint(
+            topInsightType: CoachingInsightType.comfortHeroDependence,
+            focusSourceLabel: 'Comfort hero dependence',
+            focusHeroBlock: _heroBlock(
+              heroIds: const [28, 129],
+              heroLabels: const ['Slardar', 'Mars'],
+              wins: 3,
+              losses: 2,
+            ),
           ),
-        ),
-        currentSample: _sample(
-          recentMatchesWindow: const [
-            CoachingCheckpointMatchSummary(heroId: 28, didWin: true),
-            CoachingCheckpointMatchSummary(heroId: 129, didWin: true),
-            CoachingCheckpointMatchSummary(heroId: 28, didWin: false),
-            CoachingCheckpointMatchSummary(heroId: 53, didWin: false),
-            CoachingCheckpointMatchSummary(heroId: 129, didWin: true),
-          ],
-        ),
-      );
-
-      expect(followThroughCheck.status, FocusFollowThroughStatus.onTrack);
-      expect(followThroughCheck.previousFocusLabel, 'Slardar + Mars block');
-      expect(
-        followThroughCheck.comparisonLabel,
-        'Compared against your last saved focus on staying inside the Slardar + Mars block.',
-      );
-      expect(
-        followThroughCheck.detail,
-        'You stayed inside the Slardar + Mars block in 4 of the last 5 games. Results there improved from 60% to 75%.',
-      );
-    });
-
-    test('judges named hero-block focus as mixed when the player partially drifts outside', () {
-      final followThroughCheck = service.build(
-        previousCheckpoint: _checkpoint(
-          topInsightType: CoachingInsightType.comfortHeroDependence,
-          focusSourceLabel: 'Comfort hero dependence',
-          focusHeroBlock: _heroBlock(
-            heroIds: const [28, 129],
-            heroLabels: const ['Slardar', 'Mars'],
-            wins: 3,
-            losses: 2,
+          currentSample: _sample(
+            recentMatchesWindow: const [
+              CoachingCheckpointMatchSummary(heroId: 28, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 129, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 28, didWin: false),
+              CoachingCheckpointMatchSummary(heroId: 53, didWin: false),
+              CoachingCheckpointMatchSummary(heroId: 129, didWin: true),
+            ],
           ),
-        ),
-        currentSample: _sample(
-          recentMatchesWindow: const [
-            CoachingCheckpointMatchSummary(heroId: 28, didWin: true),
-            CoachingCheckpointMatchSummary(heroId: 129, didWin: false),
-            CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
-            CoachingCheckpointMatchSummary(heroId: 54, didWin: false),
-            CoachingCheckpointMatchSummary(heroId: 28, didWin: true),
-          ],
-        ),
-      );
+        );
 
-      expect(followThroughCheck.status, FocusFollowThroughStatus.mixed);
-      expect(
-        followThroughCheck.detail,
-        'You stayed inside the Slardar + Mars block in 3 of the last 5 games. That is too much drift to judge the trend cleanly.',
-      );
-    });
+        expect(followThroughCheck.status, FocusFollowThroughStatus.onTrack);
+        expect(followThroughCheck.previousFocusLabel, 'Slardar + Mars block');
+        expect(
+          followThroughCheck.comparisonLabel,
+          'Compared against your last saved focus on staying inside the Slardar + Mars block.',
+        );
+        expect(
+          followThroughCheck.detail,
+          'You stayed inside the Slardar + Mars block in 4 of the last 5 games. Results there improved from 60% to 75%.',
+        );
+      },
+    );
 
-    test('judges named hero-block focus as off track when the player fully drifts outside', () {
-      final followThroughCheck = service.build(
-        previousCheckpoint: _checkpoint(
-          topInsightType: CoachingInsightType.comfortHeroDependence,
-          focusSourceLabel: 'Comfort hero dependence',
-          focusHeroBlock: _heroBlock(
-            heroIds: const [28, 129],
-            heroLabels: const ['Slardar', 'Mars'],
-            wins: 3,
-            losses: 2,
+    test(
+      'judges named hero-block focus as mixed when the player partially drifts outside',
+      () {
+        final followThroughCheck = service.build(
+          previousCheckpoint: _checkpoint(
+            topInsightType: CoachingInsightType.comfortHeroDependence,
+            focusSourceLabel: 'Comfort hero dependence',
+            focusHeroBlock: _heroBlock(
+              heroIds: const [28, 129],
+              heroLabels: const ['Slardar', 'Mars'],
+              wins: 3,
+              losses: 2,
+            ),
           ),
-        ),
-        currentSample: _sample(
-          recentMatchesWindow: const [
-            CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
-            CoachingCheckpointMatchSummary(heroId: 54, didWin: false),
-            CoachingCheckpointMatchSummary(heroId: 55, didWin: false),
-            CoachingCheckpointMatchSummary(heroId: 56, didWin: true),
-            CoachingCheckpointMatchSummary(heroId: 57, didWin: false),
-          ],
-        ),
-      );
+          currentSample: _sample(
+            recentMatchesWindow: const [
+              CoachingCheckpointMatchSummary(heroId: 28, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 129, didWin: false),
+              CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 54, didWin: false),
+              CoachingCheckpointMatchSummary(heroId: 28, didWin: true),
+            ],
+          ),
+        );
 
-      expect(followThroughCheck.status, FocusFollowThroughStatus.offTrack);
-      expect(
-        followThroughCheck.detail,
-        'You drifted outside the last recommended hero block.',
-      );
-    });
+        expect(followThroughCheck.status, FocusFollowThroughStatus.mixed);
+        expect(
+          followThroughCheck.detail,
+          'You stayed inside the Slardar + Mars block in 3 of the last 5 games. That is too much drift to judge the trend cleanly.',
+        );
+      },
+    );
+
+    test(
+      'judges named hero-block focus as off track when the player fully drifts outside',
+      () {
+        final followThroughCheck = service.build(
+          previousCheckpoint: _checkpoint(
+            topInsightType: CoachingInsightType.comfortHeroDependence,
+            focusSourceLabel: 'Comfort hero dependence',
+            focusHeroBlock: _heroBlock(
+              heroIds: const [28, 129],
+              heroLabels: const ['Slardar', 'Mars'],
+              wins: 3,
+              losses: 2,
+            ),
+          ),
+          currentSample: _sample(
+            recentMatchesWindow: const [
+              CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 54, didWin: false),
+              CoachingCheckpointMatchSummary(heroId: 55, didWin: false),
+              CoachingCheckpointMatchSummary(heroId: 56, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 57, didWin: false),
+            ],
+          ),
+        );
+
+        expect(followThroughCheck.status, FocusFollowThroughStatus.offTrack);
+        expect(
+          followThroughCheck.detail,
+          'You drifted outside the last recommended hero block.',
+        );
+      },
+    );
 
     test(
       'returns off track when the sample gets broader than the last stable-block checkpoint',
@@ -203,23 +212,26 @@ void main() {
       );
     });
 
-    test('keeps generic hero-pool judgment when no previous hero-specific block was stored', () {
-      final followThroughCheck = service.build(
-        previousCheckpoint: _checkpoint(
-          topInsightType: CoachingInsightType.comfortHeroDependence,
-          focusSourceLabel: 'Comfort hero dependence',
-          uniqueHeroesPlayed: 4,
-        ),
-        currentSample: _sample(uniqueHeroesPlayed: 4),
-      );
+    test(
+      'keeps generic hero-pool judgment when no previous hero-specific block was stored',
+      () {
+        final followThroughCheck = service.build(
+          previousCheckpoint: _checkpoint(
+            topInsightType: CoachingInsightType.comfortHeroDependence,
+            focusSourceLabel: 'Comfort hero dependence',
+            uniqueHeroesPlayed: 4,
+          ),
+          currentSample: _sample(uniqueHeroesPlayed: 4),
+        );
 
-      expect(followThroughCheck.status, FocusFollowThroughStatus.mixed);
-      expect(
-        followThroughCheck.comparisonLabel,
-        'Compared against your last saved focus on leaning into your comfort heroes.',
-      );
-      expect(followThroughCheck.detail, 'Your hero pool stayed at 4 heroes.');
-    });
+        expect(followThroughCheck.status, FocusFollowThroughStatus.mixed);
+        expect(
+          followThroughCheck.comparisonLabel,
+          'Compared against your last saved focus on leaning into your comfort heroes.',
+        );
+        expect(followThroughCheck.detail, 'Your hero pool stayed at 4 heroes.');
+      },
+    );
 
     test('uses different explanation lines for different focus sources', () {
       final deathsCheck = service.build(
@@ -262,6 +274,46 @@ void main() {
         isNot(specializationCheck.comparisonLabel),
       );
     });
+
+    test(
+      'manual hero block overrides the previous checkpoint focus when active',
+      () {
+        final followThroughCheck = service.build(
+          previousCheckpoint: _checkpoint(
+            topInsightType: CoachingInsightType.earlyDeathRisk,
+            focusSourceLabel: 'Early death risk',
+            recentMatchesWindow: const [
+              CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 53, didWin: false),
+              CoachingCheckpointMatchSummary(heroId: 28, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 129, didWin: false),
+            ],
+          ),
+          currentSample: _sample(
+            recentMatchesWindow: const [
+              CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 53, didWin: false),
+              CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
+              CoachingCheckpointMatchSummary(heroId: 28, didWin: false),
+            ],
+          ),
+          manualHeroBlockIds: const [53],
+          manualHeroBlockLabels: const ['Nature\'s Prophet'],
+        );
+
+        expect(followThroughCheck.status, FocusFollowThroughStatus.onTrack);
+        expect(
+          followThroughCheck.previousFocusLabel,
+          'Nature\'s Prophet block',
+        );
+        expect(
+          followThroughCheck.comparisonLabel,
+          'Compared against your active manual setup on staying inside the Nature\'s Prophet block.',
+        );
+      },
+    );
   });
 }
 

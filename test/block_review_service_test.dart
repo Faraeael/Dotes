@@ -147,46 +147,50 @@ void main() {
       expect(review.overallOutcome, BlockReviewOutcome.offTrack);
     });
 
-    test('returns an incomplete block when fewer than 5 games are available', () {
-      final review = service.build(
-        previousCheckpoint: _checkpoint(
-          savedAt: DateTime.utc(2025, 3, 20, 10),
-          topInsightType: CoachingInsightType.heroPoolSpread,
-        ),
-        currentImport: _importedPlayer(
-          matches: [
-            _match(
-              matchId: 1,
-              startedAt: DateTime.utc(2025, 3, 20, 11),
-              heroId: 28,
-              didWin: true,
-            ),
-            _match(
-              matchId: 2,
-              startedAt: DateTime.utc(2025, 3, 20, 12),
-              heroId: 129,
-              didWin: false,
-            ),
-            _match(
-              matchId: 3,
-              startedAt: DateTime.utc(2025, 3, 20, 13),
-              heroId: 53,
-              didWin: true,
-            ),
-          ],
-        ),
-        sessionPlan: _sessionPlan(targetType: SessionPlanTargetType.heroPool),
-        followThroughCheck: const FocusFollowThroughCheck.waiting(
-          fallbackMessage: 'Need a bigger block before judging follow-through.',
-        ),
-        progressCheck: null,
-      );
+    test(
+      'returns an incomplete block when fewer than 5 games are available',
+      () {
+        final review = service.build(
+          previousCheckpoint: _checkpoint(
+            savedAt: DateTime.utc(2025, 3, 20, 10),
+            topInsightType: CoachingInsightType.heroPoolSpread,
+          ),
+          currentImport: _importedPlayer(
+            matches: [
+              _match(
+                matchId: 1,
+                startedAt: DateTime.utc(2025, 3, 20, 11),
+                heroId: 28,
+                didWin: true,
+              ),
+              _match(
+                matchId: 2,
+                startedAt: DateTime.utc(2025, 3, 20, 12),
+                heroId: 129,
+                didWin: false,
+              ),
+              _match(
+                matchId: 3,
+                startedAt: DateTime.utc(2025, 3, 20, 13),
+                heroId: 53,
+                didWin: true,
+              ),
+            ],
+          ),
+          sessionPlan: _sessionPlan(targetType: SessionPlanTargetType.heroPool),
+          followThroughCheck: const FocusFollowThroughCheck.waiting(
+            fallbackMessage:
+                'Need a bigger block before judging follow-through.',
+          ),
+          progressCheck: null,
+        );
 
-      expect(review.blockStatus, BlockReviewStatus.inProgress);
-      expect(review.gamesLoggedLabel, '3 of 5');
-      expect(review.adherence, BlockReviewAdherence.noBlockSet);
-      expect(review.overallOutcome, BlockReviewOutcome.mixed);
-    });
+        expect(review.blockStatus, BlockReviewStatus.inProgress);
+        expect(review.gamesLoggedLabel, '3 of 5');
+        expect(review.adherence, BlockReviewAdherence.noBlockSet);
+        expect(review.overallOutcome, BlockReviewOutcome.mixed);
+      },
+    );
 
     test('marks the target result as improved when deaths drop', () {
       final review = service.build(
@@ -310,6 +314,69 @@ void main() {
       expect(review.targetResult, BlockReviewTargetResult.worse);
       expect(review.overallOutcome, BlockReviewOutcome.offTrack);
     });
+
+    test('manual hero block overrides the last saved block during review', () {
+      final review = service.build(
+        previousCheckpoint: _checkpoint(
+          savedAt: DateTime.utc(2025, 3, 20, 10),
+          topInsightType: CoachingInsightType.comfortHeroDependence,
+          focusHeroBlock: const CoachingCheckpointHeroBlock(
+            heroIds: [28, 129],
+            heroLabels: ['Slardar', 'Mars'],
+            wins: 3,
+            losses: 2,
+          ),
+          winRate: 0.4,
+        ),
+        currentImport: _importedPlayer(
+          matches: [
+            _match(
+              matchId: 1,
+              startedAt: DateTime.utc(2025, 3, 20, 11),
+              heroId: 53,
+              didWin: true,
+            ),
+            _match(
+              matchId: 2,
+              startedAt: DateTime.utc(2025, 3, 20, 12),
+              heroId: 53,
+              didWin: true,
+            ),
+            _match(
+              matchId: 3,
+              startedAt: DateTime.utc(2025, 3, 20, 13),
+              heroId: 53,
+              didWin: false,
+            ),
+            _match(
+              matchId: 4,
+              startedAt: DateTime.utc(2025, 3, 20, 14),
+              heroId: 53,
+              didWin: true,
+            ),
+            _match(
+              matchId: 5,
+              startedAt: DateTime.utc(2025, 3, 20, 15),
+              heroId: 53,
+              didWin: true,
+            ),
+          ],
+        ),
+        sessionPlan: _sessionPlan(
+          targetType: SessionPlanTargetType.comfortBlock,
+          heroBlockHeroIds: const [53],
+          usesManualHeroBlock: true,
+        ),
+        followThroughCheck: const FocusFollowThroughCheck.waiting(
+          fallbackMessage: 'Waiting for review.',
+        ),
+        progressCheck: null,
+      );
+
+      expect(review.adherence, BlockReviewAdherence.stayedInsideBlock);
+      expect(review.targetResult, BlockReviewTargetResult.improved);
+      expect(review.overallOutcome, BlockReviewOutcome.onTrack);
+    });
   });
 }
 
@@ -346,9 +413,7 @@ CoachingCheckpoint _checkpoint({
   );
 }
 
-ImportedPlayerData _importedPlayer({
-  required List<RecentMatch> matches,
-}) {
+ImportedPlayerData _importedPlayer({required List<RecentMatch> matches}) {
   return ImportedPlayerData(
     profile: const PlayerProfileSummary(
       accountId: 86745912,
@@ -390,6 +455,7 @@ SessionPlan _sessionPlan({
   required SessionPlanTargetType targetType,
   List<int> heroBlockHeroIds = const [],
   String? roleBlockKey,
+  bool usesManualHeroBlock = false,
 }) {
   return SessionPlan(
     queue: 'Carry only',
@@ -399,5 +465,6 @@ SessionPlan _sessionPlan({
     targetType: targetType,
     heroBlockHeroIds: heroBlockHeroIds,
     roleBlockKey: roleBlockKey,
+    usesManualHeroBlock: usesManualHeroBlock,
   );
 }

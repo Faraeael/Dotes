@@ -2,7 +2,9 @@ import 'package:dotes/src/features/checkpoints/data/local/checkpoint_local_store
 import 'package:dotes/src/features/checkpoints/data/repositories/local_coaching_checkpoint_repository.dart';
 import 'package:dotes/src/features/checkpoints/domain/models/coaching_checkpoint.dart';
 import 'package:dotes/src/features/checkpoints/domain/repositories/coaching_checkpoint_repository.dart';
+import 'package:dotes/src/features/dashboard/domain/models/session_plan.dart';
 import 'package:dotes/src/features/insights/domain/models/coaching_insight.dart';
+import 'package:dotes/src/features/training_preferences/domain/models/training_preferences.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -31,12 +33,22 @@ void main() {
       expect(loadedCheckpoint, isNotNull);
       expect(loadedCheckpoint!.accountId, 86745912);
       expect(loadedCheckpoint.focusAction, draft.focusAction);
-      expect(loadedCheckpoint.topInsightType, CoachingInsightType.earlyDeathRisk);
+      expect(
+        loadedCheckpoint.topInsightType,
+        CoachingInsightType.earlyDeathRisk,
+      );
       expect(loadedCheckpoint.focusHeroBlock, isNotNull);
       expect(loadedCheckpoint.focusHeroBlock!.heroIds, [28, 129]);
       expect(loadedCheckpoint.focusHeroBlock!.heroLabels, ['Slardar', 'Mars']);
+      expect(loadedCheckpoint.savedSessionPlan, isNotNull);
+      expect(loadedCheckpoint.savedSessionPlan!.heroBlockHeroIds, [28, 129]);
+      expect(
+        loadedCheckpoint.savedTrainingPreferences?.coachingMode,
+        TrainingCoachingMode.preferManualSetup,
+      );
       expect(loadedCheckpoint.sample.averageDeaths, 7.2);
       expect(loadedCheckpoint.sample.recentMatchesWindow, hasLength(5));
+      expect(loadedCheckpoint.blockFingerprint, draft.blockFingerprint);
       expect(history, hasLength(1));
     });
 
@@ -50,26 +62,23 @@ void main() {
       expect(otherHistory, isEmpty);
     });
 
-    test('stores multiple checkpoints for the same account in recency order', () async {
-      await repository.saveDraft(
-        _draft(
-          accountId: 86745912,
-          focusAction: 'Old focus',
-        ),
-      );
-      await repository.saveDraft(
-        _draft(
-          accountId: 86745912,
-          focusAction: 'New focus',
-        ),
-      );
+    test(
+      'stores multiple checkpoints for the same account in recency order',
+      () async {
+        await repository.saveDraft(
+          _draft(accountId: 86745912, focusAction: 'Old focus'),
+        );
+        await repository.saveDraft(
+          _draft(accountId: 86745912, focusAction: 'New focus'),
+        );
 
-      final history = await repository.loadHistoryForAccount(86745912);
+        final history = await repository.loadHistoryForAccount(86745912);
 
-      expect(history, hasLength(2));
-      expect(history.first.focusAction, 'New focus');
-      expect(history.last.focusAction, 'Old focus');
-    });
+        expect(history, hasLength(2));
+        expect(history.first.focusAction, 'New focus');
+        expect(history.last.focusAction, 'Old focus');
+      },
+    );
 
     test('keeps histories separate for different accounts', () async {
       await repository.saveDraft(
@@ -118,6 +127,23 @@ CoachingCheckpointDraft _draft({
       heroLabels: ['Slardar', 'Mars'],
       wins: 4,
       losses: 1,
+    ),
+    savedSessionPlan: const CoachingCheckpointSessionPlan(
+      queue: 'Carry only',
+      heroBlock: 'Slardar + Mars',
+      target: 'Stay on the block',
+      reviewWindow: 'next 5 games',
+      targetType: SessionPlanTargetType.comfortBlock,
+      heroBlockHeroIds: [28, 129],
+      heroBlockHeroLabels: ['Slardar', 'Mars'],
+      roleBlockKey: 'carry',
+      usesManualRoleSetup: true,
+      usesManualHeroBlock: true,
+    ),
+    savedTrainingPreferences: const TrainingPreferences(
+      coachingMode: TrainingCoachingMode.preferManualSetup,
+      preferredRole: TrainingRolePreference.carry,
+      lockedHeroIds: [28, 129],
     ),
     sample: const CoachingCheckpointSample(
       matchesAnalyzed: 10,

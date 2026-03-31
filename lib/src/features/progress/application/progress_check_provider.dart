@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../checkpoints/application/coaching_checkpoint_providers.dart';
+import '../../matches/presentation/utils/hero_labels.dart';
 import '../../player_import/application/imported_player_provider.dart';
+import '../../training_preferences/application/training_preferences_providers.dart';
 import '../domain/models/focus_follow_through_check.dart';
 import '../domain/models/progress_check.dart';
 import '../domain/services/focus_follow_through_service.dart';
@@ -29,7 +31,9 @@ final progressCheckProvider = Provider<ProgressCheck?>((ref) {
 
 final focusFollowThroughProvider = Provider<FocusFollowThroughCheck?>((ref) {
   final previousCheckpoint = ref.watch(previousCoachingCheckpointProvider);
-  final currentCheckpointDraft = ref.watch(currentCoachingCheckpointDraftProvider);
+  final currentCheckpointDraft = ref.watch(
+    currentCoachingCheckpointDraftProvider,
+  );
   if (currentCheckpointDraft == null) {
     return null;
   }
@@ -41,8 +45,14 @@ final focusFollowThroughProvider = Provider<FocusFollowThroughCheck?>((ref) {
   }
 
   final service = ref.watch(focusFollowThroughServiceProvider);
+  final trainingPreferences = ref.watch(currentTrainingPreferencesProvider);
+  final manualHeroBlockIds = trainingPreferences.activeLockedHeroIds;
   return service.build(
     previousCheckpoint: previousCheckpoint,
     currentSample: currentCheckpointDraft.sample,
+    manualHeroBlockIds: manualHeroBlockIds,
+    manualHeroBlockLabels: manualHeroBlockIds
+        .map(heroDisplayName)
+        .toList(growable: false),
   );
 });

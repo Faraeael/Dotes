@@ -1,6 +1,6 @@
 enum BlockReviewStatus {
-  inProgress('In progress'),
-  completed('Completed');
+  inProgress('Live'),
+  completed('Complete');
 
   const BlockReviewStatus(this.label);
 
@@ -8,11 +8,11 @@ enum BlockReviewStatus {
 }
 
 enum BlockReviewAdherence {
-  stayedInsideBlock('stayed inside block'),
-  partialDrift('partial drift'),
-  offBlock('off block'),
-  noBlockSet('no block set'),
-  notEnoughGames('not enough games yet');
+  stayedInsideBlock('Stayed in block'),
+  partialDrift('Some drift'),
+  offBlock('Off block'),
+  noBlockSet('No block set'),
+  notEnoughGames('Need more games');
 
   const BlockReviewAdherence(this.label);
 
@@ -20,9 +20,9 @@ enum BlockReviewAdherence {
 }
 
 enum BlockReviewTargetResult {
-  improved('improved'),
-  flat('flat'),
-  worse('worse');
+  improved('Improved'),
+  flat('Flat'),
+  worse('Worse');
 
   const BlockReviewTargetResult(this.label);
 

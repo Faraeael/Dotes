@@ -12,6 +12,13 @@ import 'package:dotes/src/features/player_import/domain/models/imported_player_d
 import 'package:dotes/src/features/player_import/domain/models/player_profile_summary.dart';
 import 'package:dotes/src/features/player_import/domain/models/recent_match.dart';
 import 'package:dotes/src/features/player_import/domain/repositories/player_import_repository.dart';
+import 'package:dotes/src/features/tester_feedback/application/tester_feedback_providers.dart';
+import 'package:dotes/src/features/tester_feedback/domain/models/tester_feedback.dart';
+import 'package:dotes/src/features/tester_feedback/domain/models/tester_feedback_record.dart';
+import 'package:dotes/src/features/tester_feedback/domain/repositories/tester_feedback_repository.dart';
+import 'package:dotes/src/features/training_preferences/application/training_preferences_providers.dart';
+import 'package:dotes/src/features/training_preferences/domain/models/training_preferences.dart';
+import 'package:dotes/src/features/training_preferences/domain/repositories/training_preferences_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,11 +30,19 @@ void main() {
         recentMatchesResult: Success([_match()]),
       );
       final checkpointRepository = FakeCoachingCheckpointRepository();
+      final testerFeedbackRepository = FakeTesterFeedbackRepository();
+      final trainingPreferencesRepository = FakeTrainingPreferencesRepository();
       final container = ProviderContainer(
         overrides: [
           playerImportRepositoryProvider.overrideWithValue(repository),
           coachingCheckpointRepositoryProvider.overrideWithValue(
             checkpointRepository,
+          ),
+          testerFeedbackRepositoryProvider.overrideWithValue(
+            testerFeedbackRepository,
+          ),
+          trainingPreferencesRepositoryProvider.overrideWithValue(
+            trainingPreferencesRepository,
           ),
         ],
       );
@@ -41,7 +56,10 @@ void main() {
       final success = await controller.submit();
 
       expect(success, isTrue);
-      expect(container.read(playerImportControllerProvider).playerId, '86745912');
+      expect(
+        container.read(playerImportControllerProvider).playerId,
+        '86745912',
+      );
 
       final importedPlayer = container.read(importedPlayerProvider);
       expect(importedPlayer, isNotNull);
@@ -55,20 +73,26 @@ void main() {
         recentMatchesResult: Success([_match()]),
       );
       final checkpointRepository = FakeCoachingCheckpointRepository();
+      final testerFeedbackRepository = FakeTesterFeedbackRepository();
+      final trainingPreferencesRepository = FakeTrainingPreferencesRepository();
       final container = ProviderContainer(
         overrides: [
           playerImportRepositoryProvider.overrideWithValue(repository),
           coachingCheckpointRepositoryProvider.overrideWithValue(
             checkpointRepository,
           ),
+          testerFeedbackRepositoryProvider.overrideWithValue(
+            testerFeedbackRepository,
+          ),
+          trainingPreferencesRepositoryProvider.overrideWithValue(
+            trainingPreferencesRepository,
+          ),
         ],
       );
       addTearDown(container.dispose);
 
-      container.read(importedPlayerProvider.notifier).state = ImportedPlayerData(
-        profile: _profile(),
-        recentMatches: [_match()],
-      );
+      container.read(importedPlayerProvider.notifier).state =
+          ImportedPlayerData(profile: _profile(), recentMatches: [_match()]);
 
       final controller = container.read(
         playerImportControllerProvider.notifier,
@@ -81,128 +105,268 @@ void main() {
       expect(container.read(importedPlayerProvider), isNull);
       expect(
         container.read(playerImportControllerProvider).errorMessage,
-        'Enter a player or account ID to continue.',
+        'Enter a player or account ID.',
       );
       expect(repository.profileCalls, 0);
       expect(repository.recentMatchesCalls, 0);
     });
 
-    test('clears stale imported data when recent matches request fails', () async {
-      final repository = FakePlayerImportRepository(
-        profileResult: Success(_profile()),
-        recentMatchesResult: const Failure(
-          AppFailure(
-            type: AppFailureType.network,
-            message: 'No internet connection detected, or OpenDota could not be reached.',
+    test(
+      'clears stale imported data when recent matches request fails',
+      () async {
+        final repository = FakePlayerImportRepository(
+          profileResult: Success(_profile()),
+          recentMatchesResult: const Failure(
+            AppFailure(
+              type: AppFailureType.network,
+              message:
+                  'No internet connection detected, or OpenDota could not be reached.',
+            ),
           ),
-        ),
+        );
+        final checkpointRepository = FakeCoachingCheckpointRepository();
+        final testerFeedbackRepository = FakeTesterFeedbackRepository();
+        final trainingPreferencesRepository =
+            FakeTrainingPreferencesRepository();
+        final container = ProviderContainer(
+          overrides: [
+            playerImportRepositoryProvider.overrideWithValue(repository),
+            coachingCheckpointRepositoryProvider.overrideWithValue(
+              checkpointRepository,
+            ),
+            testerFeedbackRepositoryProvider.overrideWithValue(
+              testerFeedbackRepository,
+            ),
+            trainingPreferencesRepositoryProvider.overrideWithValue(
+              trainingPreferencesRepository,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        container
+            .read(importedPlayerProvider.notifier)
+            .state = ImportedPlayerData(
+          profile: _profile(accountId: 1),
+          recentMatches: [_match(matchId: 1)],
+        );
+
+        final controller = container.read(
+          playerImportControllerProvider.notifier,
+        );
+
+        controller.updatePlayerId('86745912');
+        final success = await controller.submit();
+
+        expect(success, isFalse);
+        expect(container.read(importedPlayerProvider), isNull);
+        expect(repository.profileCalls, 1);
+        expect(repository.recentMatchesCalls, 1);
+      },
+    );
+
+    test(
+      'ignores duplicate submits while a request is already in flight',
+      () async {
+        final profileCompleter = Completer<Result<PlayerProfileSummary>>();
+        final repository = FakePlayerImportRepository(
+          profileResultFactory: () => profileCompleter.future,
+          recentMatchesResult: Success([_match()]),
+        );
+        final checkpointRepository = FakeCoachingCheckpointRepository();
+        final testerFeedbackRepository = FakeTesterFeedbackRepository();
+        final trainingPreferencesRepository =
+            FakeTrainingPreferencesRepository();
+        final container = ProviderContainer(
+          overrides: [
+            playerImportRepositoryProvider.overrideWithValue(repository),
+            coachingCheckpointRepositoryProvider.overrideWithValue(
+              checkpointRepository,
+            ),
+            testerFeedbackRepositoryProvider.overrideWithValue(
+              testerFeedbackRepository,
+            ),
+            trainingPreferencesRepositoryProvider.overrideWithValue(
+              trainingPreferencesRepository,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final controller = container.read(
+          playerImportControllerProvider.notifier,
+        );
+
+        controller.updatePlayerId('86745912');
+
+        final firstSubmit = controller.submit();
+        final secondSubmit = await controller.submit();
+
+        expect(secondSubmit, isFalse);
+        expect(
+          container.read(playerImportControllerProvider).isSubmitting,
+          isTrue,
+        );
+        expect(repository.profileCalls, 1);
+
+        profileCompleter.complete(Success(_profile()));
+
+        expect(await firstSubmit, isTrue);
+        expect(repository.profileCalls, 1);
+        expect(repository.recentMatchesCalls, 1);
+      },
+    );
+
+    test(
+      'loads no previous checkpoint on first import for an account',
+      () async {
+        final repository = FakePlayerImportRepository(
+          profileResult: Success(_profile()),
+          recentMatchesResult: Success([_match()]),
+        );
+        final checkpointRepository = FakeCoachingCheckpointRepository();
+        final testerFeedbackRepository = FakeTesterFeedbackRepository();
+        final trainingPreferencesRepository =
+            FakeTrainingPreferencesRepository();
+        final container = ProviderContainer(
+          overrides: [
+            playerImportRepositoryProvider.overrideWithValue(repository),
+            coachingCheckpointRepositoryProvider.overrideWithValue(
+              checkpointRepository,
+            ),
+            testerFeedbackRepositoryProvider.overrideWithValue(
+              testerFeedbackRepository,
+            ),
+            trainingPreferencesRepositoryProvider.overrideWithValue(
+              trainingPreferencesRepository,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final controller = container.read(
+          playerImportControllerProvider.notifier,
+        );
+
+        controller.updatePlayerId('86745912');
+        final success = await controller.submit();
+
+        expect(success, isTrue);
+        expect(container.read(previousCoachingCheckpointProvider), isNull);
+        expect(checkpointRepository.loadCalls, [86745912]);
+      },
+    );
+
+    test(
+      'loads the previous checkpoint for the same account on import',
+      () async {
+        final repository = FakePlayerImportRepository(
+          profileResult: Success(_profile()),
+          recentMatchesResult: Success([_match()]),
+        );
+        final checkpoint = _checkpoint(accountId: 86745912);
+        final checkpointRepository = FakeCoachingCheckpointRepository(
+          storedCheckpoints: {86745912: checkpoint},
+        );
+        final testerFeedbackRepository = FakeTesterFeedbackRepository();
+        final trainingPreferencesRepository =
+            FakeTrainingPreferencesRepository();
+        final container = ProviderContainer(
+          overrides: [
+            playerImportRepositoryProvider.overrideWithValue(repository),
+            coachingCheckpointRepositoryProvider.overrideWithValue(
+              checkpointRepository,
+            ),
+            testerFeedbackRepositoryProvider.overrideWithValue(
+              testerFeedbackRepository,
+            ),
+            trainingPreferencesRepositoryProvider.overrideWithValue(
+              trainingPreferencesRepository,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final controller = container.read(
+          playerImportControllerProvider.notifier,
+        );
+
+        controller.updatePlayerId('86745912');
+        final success = await controller.submit();
+
+        expect(success, isTrue);
+        expect(
+          container.read(previousCoachingCheckpointProvider)?.focusAction,
+          checkpoint.focusAction,
+        );
+        expect(checkpointRepository.loadCalls, [86745912]);
+      },
+    );
+
+    test('does not reuse another player checkpoint on import', () async {
+      final repository = FakePlayerImportRepository(
+        profileResult: Success(_profile(accountId: 2222)),
+        recentMatchesResult: Success([_match()]),
       );
-      final checkpointRepository = FakeCoachingCheckpointRepository();
+      final checkpointRepository = FakeCoachingCheckpointRepository(
+        storedCheckpoints: {86745912: _checkpoint(accountId: 86745912)},
+      );
+      final testerFeedbackRepository = FakeTesterFeedbackRepository();
+      final trainingPreferencesRepository = FakeTrainingPreferencesRepository();
       final container = ProviderContainer(
         overrides: [
           playerImportRepositoryProvider.overrideWithValue(repository),
           coachingCheckpointRepositoryProvider.overrideWithValue(
             checkpointRepository,
           ),
+          testerFeedbackRepositoryProvider.overrideWithValue(
+            testerFeedbackRepository,
+          ),
+          trainingPreferencesRepositoryProvider.overrideWithValue(
+            trainingPreferencesRepository,
+          ),
         ],
       );
       addTearDown(container.dispose);
-
-      container.read(importedPlayerProvider.notifier).state = ImportedPlayerData(
-        profile: _profile(accountId: 1),
-        recentMatches: [_match(matchId: 1)],
-      );
 
       final controller = container.read(
         playerImportControllerProvider.notifier,
       );
 
-      controller.updatePlayerId('86745912');
-      final success = await controller.submit();
-
-      expect(success, isFalse);
-      expect(container.read(importedPlayerProvider), isNull);
-      expect(repository.profileCalls, 1);
-      expect(repository.recentMatchesCalls, 1);
-    });
-
-    test('ignores duplicate submits while a request is already in flight', () async {
-      final profileCompleter = Completer<Result<PlayerProfileSummary>>();
-      final repository = FakePlayerImportRepository(
-        profileResultFactory: () => profileCompleter.future,
-        recentMatchesResult: Success([_match()]),
-      );
-      final checkpointRepository = FakeCoachingCheckpointRepository();
-      final container = ProviderContainer(
-        overrides: [
-          playerImportRepositoryProvider.overrideWithValue(repository),
-          coachingCheckpointRepositoryProvider.overrideWithValue(
-            checkpointRepository,
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final controller = container.read(
-        playerImportControllerProvider.notifier,
-      );
-
-      controller.updatePlayerId('86745912');
-
-      final firstSubmit = controller.submit();
-      final secondSubmit = await controller.submit();
-
-      expect(secondSubmit, isFalse);
-      expect(container.read(playerImportControllerProvider).isSubmitting, isTrue);
-      expect(repository.profileCalls, 1);
-
-      profileCompleter.complete(Success(_profile()));
-
-      expect(await firstSubmit, isTrue);
-      expect(repository.profileCalls, 1);
-      expect(repository.recentMatchesCalls, 1);
-    });
-
-    test('loads no previous checkpoint on first import for an account', () async {
-      final repository = FakePlayerImportRepository(
-        profileResult: Success(_profile()),
-        recentMatchesResult: Success([_match()]),
-      );
-      final checkpointRepository = FakeCoachingCheckpointRepository();
-      final container = ProviderContainer(
-        overrides: [
-          playerImportRepositoryProvider.overrideWithValue(repository),
-          coachingCheckpointRepositoryProvider.overrideWithValue(
-            checkpointRepository,
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final controller = container.read(playerImportControllerProvider.notifier);
-
-      controller.updatePlayerId('86745912');
+      controller.updatePlayerId('2222');
       final success = await controller.submit();
 
       expect(success, isTrue);
       expect(container.read(previousCoachingCheckpointProvider), isNull);
-      expect(checkpointRepository.loadCalls, [86745912]);
+      expect(checkpointRepository.loadCalls, [2222]);
     });
 
-    test('loads the previous checkpoint for the same account on import', () async {
+    test('loads saved tester feedback for the imported account', () async {
       final repository = FakePlayerImportRepository(
         profileResult: Success(_profile()),
         recentMatchesResult: Success([_match()]),
       );
-      final checkpoint = _checkpoint(accountId: 86745912);
-      final checkpointRepository = FakeCoachingCheckpointRepository(
-        storedCheckpoints: {86745912: checkpoint},
+      final checkpointRepository = FakeCoachingCheckpointRepository();
+      final testerFeedbackRepository = FakeTesterFeedbackRepository(
+        storedFeedback: {
+          86745912: const TesterFeedback(
+            rating: TesterFeedbackRating.clear,
+            note: 'The coaching loop felt easy to follow.',
+          ),
+        },
       );
+      final trainingPreferencesRepository = FakeTrainingPreferencesRepository();
       final container = ProviderContainer(
         overrides: [
           playerImportRepositoryProvider.overrideWithValue(repository),
           coachingCheckpointRepositoryProvider.overrideWithValue(
             checkpointRepository,
+          ),
+          testerFeedbackRepositoryProvider.overrideWithValue(
+            testerFeedbackRepository,
+          ),
+          trainingPreferencesRepositoryProvider.overrideWithValue(
+            trainingPreferencesRepository,
           ),
         ],
       );
@@ -215,25 +379,37 @@ void main() {
 
       expect(success, isTrue);
       expect(
-        container.read(previousCoachingCheckpointProvider)?.focusAction,
-        checkpoint.focusAction,
+        container.read(currentTesterFeedbackProvider)?.trimmedNote,
+        'The coaching loop felt easy to follow.',
       );
-      expect(checkpointRepository.loadCalls, [86745912]);
     });
 
-    test('does not reuse another player checkpoint on import', () async {
+    test('does not reuse another player feedback on import', () async {
       final repository = FakePlayerImportRepository(
         profileResult: Success(_profile(accountId: 2222)),
         recentMatchesResult: Success([_match()]),
       );
-      final checkpointRepository = FakeCoachingCheckpointRepository(
-        storedCheckpoints: {86745912: _checkpoint(accountId: 86745912)},
+      final checkpointRepository = FakeCoachingCheckpointRepository();
+      final testerFeedbackRepository = FakeTesterFeedbackRepository(
+        storedFeedback: {
+          86745912: const TesterFeedback(
+            rating: TesterFeedbackRating.confusing,
+            note: 'This should stay with the first account only.',
+          ),
+        },
       );
+      final trainingPreferencesRepository = FakeTrainingPreferencesRepository();
       final container = ProviderContainer(
         overrides: [
           playerImportRepositoryProvider.overrideWithValue(repository),
           coachingCheckpointRepositoryProvider.overrideWithValue(
             checkpointRepository,
+          ),
+          testerFeedbackRepositoryProvider.overrideWithValue(
+            testerFeedbackRepository,
+          ),
+          trainingPreferencesRepositoryProvider.overrideWithValue(
+            trainingPreferencesRepository,
           ),
         ],
       );
@@ -245,8 +421,7 @@ void main() {
       final success = await controller.submit();
 
       expect(success, isTrue);
-      expect(container.read(previousCoachingCheckpointProvider), isNull);
-      expect(checkpointRepository.loadCalls, [2222]);
+      expect(container.read(currentTesterFeedbackProvider), isNull);
     });
   });
 }
@@ -262,7 +437,8 @@ class FakePlayerImportRepository implements PlayerImportRepository {
   final Result<PlayerProfileSummary>? profileResult;
   final Result<List<RecentMatch>>? recentMatchesResult;
   final Future<Result<PlayerProfileSummary>> Function()? profileResultFactory;
-  final Future<Result<List<RecentMatch>>> Function()? recentMatchesResultFactory;
+  final Future<Result<List<RecentMatch>>> Function()?
+  recentMatchesResultFactory;
 
   int profileCalls = 0;
   int recentMatchesCalls = 0;
@@ -330,6 +506,58 @@ class FakeCoachingCheckpointRepository implements CoachingCheckpointRepository {
       ifAbsent: () => [checkpoint],
     );
     return checkpoint;
+  }
+}
+
+class FakeTrainingPreferencesRepository
+    implements TrainingPreferencesRepository {
+  FakeTrainingPreferencesRepository({
+    Map<int, TrainingPreferences>? storedPreferences,
+  }) : _storedPreferences = Map<int, TrainingPreferences>.from(
+         storedPreferences ?? const {},
+       );
+
+  final Map<int, TrainingPreferences> _storedPreferences;
+
+  @override
+  Future<TrainingPreferences> loadForAccount(int accountId) async {
+    return _storedPreferences[accountId] ?? const TrainingPreferences();
+  }
+
+  @override
+  Future<void> saveForAccount(
+    int accountId,
+    TrainingPreferences preferences,
+  ) async {
+    _storedPreferences[accountId] = preferences;
+  }
+}
+
+class FakeTesterFeedbackRepository implements TesterFeedbackRepository {
+  FakeTesterFeedbackRepository({
+    Map<int, TesterFeedback>? storedFeedback,
+  }) : _storedFeedback = Map<int, TesterFeedback>.from(
+         storedFeedback ?? const {},
+       );
+
+  final Map<int, TesterFeedback> _storedFeedback;
+
+  @override
+  Future<TesterFeedback?> loadForAccount(int accountId) async {
+    return _storedFeedback[accountId];
+  }
+
+  @override
+  Future<List<TesterFeedbackRecord>> loadAll() async {
+    return [
+      for (final entry in _storedFeedback.entries)
+        TesterFeedbackRecord(accountId: entry.key, feedback: entry.value),
+    ];
+  }
+
+  @override
+  Future<void> saveForAccount(int accountId, TesterFeedback feedback) async {
+    _storedFeedback[accountId] = feedback;
   }
 }
 

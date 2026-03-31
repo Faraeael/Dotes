@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import '../../../dashboard/domain/models/session_plan.dart';
 import '../../../insights/domain/models/coaching_insight.dart';
 import '../../../insights/domain/models/next_games_focus.dart';
 import '../../../player_import/domain/models/imported_player_data.dart';
 import '../../../roles/domain/models/sample_role_summary.dart';
+import '../../../training_preferences/domain/models/training_preferences.dart';
 
 class CoachingCheckpointDraft {
   const CoachingCheckpointDraft({
@@ -13,6 +15,8 @@ class CoachingCheckpointDraft {
     required this.topInsightType,
     required this.sample,
     this.focusHeroBlock,
+    this.savedSessionPlan,
+    this.savedTrainingPreferences,
   });
 
   final int accountId;
@@ -21,6 +25,10 @@ class CoachingCheckpointDraft {
   final CoachingInsightType? topInsightType;
   final CoachingCheckpointSample sample;
   final CoachingCheckpointHeroBlock? focusHeroBlock;
+  final CoachingCheckpointSessionPlan? savedSessionPlan;
+  final TrainingPreferences? savedTrainingPreferences;
+
+  String get blockFingerprint => sample.reviewedBlockFingerprint;
 
   String get fingerprint => jsonEncode({
     'accountId': accountId,
@@ -28,8 +36,28 @@ class CoachingCheckpointDraft {
     'focusSourceLabel': focusSourceLabel,
     'topInsightType': topInsightType?.name,
     'focusHeroBlock': focusHeroBlock?.toJson(),
+    'savedSessionPlan': savedSessionPlan?.toJson(),
+    'savedTrainingPreferences': savedTrainingPreferences?.toJson(),
+    'blockFingerprint': blockFingerprint,
     'sample': sample.toJson(),
   });
+
+  CoachingCheckpointDraft withSavedContext({
+    CoachingCheckpointSessionPlan? savedSessionPlan,
+    TrainingPreferences? savedTrainingPreferences,
+  }) {
+    return CoachingCheckpointDraft(
+      accountId: accountId,
+      focusAction: focusAction,
+      focusSourceLabel: focusSourceLabel,
+      topInsightType: topInsightType,
+      sample: sample,
+      focusHeroBlock: focusHeroBlock,
+      savedSessionPlan: savedSessionPlan ?? this.savedSessionPlan,
+      savedTrainingPreferences:
+          savedTrainingPreferences ?? this.savedTrainingPreferences,
+    );
+  }
 
   CoachingCheckpoint toCheckpoint(DateTime savedAt) {
     return CoachingCheckpoint(
@@ -39,6 +67,9 @@ class CoachingCheckpointDraft {
       focusSourceLabel: focusSourceLabel,
       topInsightType: topInsightType,
       focusHeroBlock: focusHeroBlock,
+      savedSessionPlan: savedSessionPlan,
+      savedTrainingPreferences: savedTrainingPreferences,
+      savedBlockFingerprint: blockFingerprint,
       sample: sample,
     );
   }
@@ -53,6 +84,9 @@ class CoachingCheckpoint {
     required this.topInsightType,
     required this.sample,
     this.focusHeroBlock,
+    this.savedSessionPlan,
+    this.savedTrainingPreferences,
+    this.savedBlockFingerprint,
   });
 
   final int accountId;
@@ -62,6 +96,36 @@ class CoachingCheckpoint {
   final CoachingInsightType? topInsightType;
   final CoachingCheckpointSample sample;
   final CoachingCheckpointHeroBlock? focusHeroBlock;
+  final CoachingCheckpointSessionPlan? savedSessionPlan;
+  final TrainingPreferences? savedTrainingPreferences;
+  final String? savedBlockFingerprint;
+
+  String get blockFingerprint {
+    final storedValue = savedBlockFingerprint?.trim();
+    if (storedValue != null && storedValue.isNotEmpty) {
+      return storedValue;
+    }
+
+    return sample.reviewedBlockFingerprint;
+  }
+
+  CoachingCheckpointHeroBlock? get savedSessionPlanHeroBlock {
+    final sessionPlan = savedSessionPlan;
+    if (sessionPlan == null || sessionPlan.heroBlockHeroIds.isEmpty) {
+      return null;
+    }
+
+    final matches = sample.recentMatchesWindow
+        .where((match) => sessionPlan.heroBlockHeroIds.contains(match.heroId))
+        .toList(growable: false);
+    final wins = matches.where((match) => match.didWin).length;
+    return CoachingCheckpointHeroBlock(
+      heroIds: sessionPlan.heroBlockHeroIds,
+      heroLabels: sessionPlan.heroBlockHeroLabels,
+      wins: wins,
+      losses: matches.length - wins,
+    );
+  }
 
   String get fingerprint => jsonEncode({
     'accountId': accountId,
@@ -69,6 +133,9 @@ class CoachingCheckpoint {
     'focusSourceLabel': focusSourceLabel,
     'topInsightType': topInsightType?.name,
     'focusHeroBlock': focusHeroBlock?.toJson(),
+    'savedSessionPlan': savedSessionPlan?.toJson(),
+    'savedTrainingPreferences': savedTrainingPreferences?.toJson(),
+    'blockFingerprint': blockFingerprint,
     'sample': sample.toJson(),
   });
 
@@ -80,6 +147,9 @@ class CoachingCheckpoint {
       'focusSourceLabel': focusSourceLabel,
       'topInsightType': topInsightType?.name,
       'focusHeroBlock': focusHeroBlock?.toJson(),
+      'savedSessionPlan': savedSessionPlan?.toJson(),
+      'savedTrainingPreferences': savedTrainingPreferences?.toJson(),
+      'savedBlockFingerprint': blockFingerprint,
       'sample': sample.toJson(),
     };
   }
@@ -88,7 +158,8 @@ class CoachingCheckpoint {
     return CoachingCheckpoint(
       accountId: json['accountId'] as int? ?? 0,
       savedAt: DateTime.parse(
-        json['savedAt'] as String? ?? DateTime.fromMillisecondsSinceEpoch(0).toUtc().toIso8601String(),
+        json['savedAt'] as String? ??
+            DateTime.fromMillisecondsSinceEpoch(0).toUtc().toIso8601String(),
       ).toUtc(),
       focusAction: json['focusAction'] as String? ?? '',
       focusSourceLabel: json['focusSourceLabel'] as String? ?? '',
@@ -96,6 +167,13 @@ class CoachingCheckpoint {
       focusHeroBlock: CoachingCheckpointHeroBlock.fromJsonOrNull(
         json['focusHeroBlock'],
       ),
+      savedSessionPlan: CoachingCheckpointSessionPlan.fromJsonOrNull(
+        json['savedSessionPlan'],
+      ),
+      savedTrainingPreferences: _readTrainingPreferences(
+        json['savedTrainingPreferences'],
+      ),
+      savedBlockFingerprint: json['savedBlockFingerprint'] as String?,
       sample: CoachingCheckpointSample.fromJson(
         Map<String, dynamic>.from(
           json['sample'] as Map<dynamic, dynamic>? ?? const {},
@@ -116,6 +194,120 @@ class CoachingCheckpoint {
     }
 
     return null;
+  }
+
+  static TrainingPreferences? _readTrainingPreferences(dynamic value) {
+    if (value is! Map<dynamic, dynamic>) {
+      return null;
+    }
+
+    return TrainingPreferences.fromJson(Map<String, dynamic>.from(value));
+  }
+}
+
+class CoachingCheckpointSessionPlan {
+  const CoachingCheckpointSessionPlan({
+    required this.queue,
+    required this.heroBlock,
+    required this.target,
+    required this.reviewWindow,
+    required this.targetType,
+    required this.heroBlockHeroIds,
+    required this.heroBlockHeroLabels,
+    required this.usesManualRoleSetup,
+    required this.usesManualHeroBlock,
+    this.roleBlockKey,
+  });
+
+  final String queue;
+  final String heroBlock;
+  final String target;
+  final String reviewWindow;
+  final SessionPlanTargetType targetType;
+  final List<int> heroBlockHeroIds;
+  final List<String> heroBlockHeroLabels;
+  final String? roleBlockKey;
+  final bool usesManualRoleSetup;
+  final bool usesManualHeroBlock;
+
+  factory CoachingCheckpointSessionPlan.fromSessionPlan(
+    SessionPlan sessionPlan, {
+    required List<String> heroBlockHeroLabels,
+  }) {
+    return CoachingCheckpointSessionPlan(
+      queue: sessionPlan.queue,
+      heroBlock: sessionPlan.heroBlock,
+      target: sessionPlan.target,
+      reviewWindow: sessionPlan.reviewWindow,
+      targetType: sessionPlan.targetType,
+      heroBlockHeroIds: sessionPlan.heroBlockHeroIds,
+      heroBlockHeroLabels: heroBlockHeroLabels,
+      roleBlockKey: sessionPlan.roleBlockKey,
+      usesManualRoleSetup: sessionPlan.usesManualRoleSetup,
+      usesManualHeroBlock: sessionPlan.usesManualHeroBlock,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'queue': queue,
+      'heroBlock': heroBlock,
+      'target': target,
+      'reviewWindow': reviewWindow,
+      'targetType': targetType.name,
+      'heroBlockHeroIds': heroBlockHeroIds,
+      'heroBlockHeroLabels': heroBlockHeroLabels,
+      'roleBlockKey': roleBlockKey,
+      'usesManualRoleSetup': usesManualRoleSetup,
+      'usesManualHeroBlock': usesManualHeroBlock,
+    };
+  }
+
+  static CoachingCheckpointSessionPlan? fromJsonOrNull(dynamic value) {
+    if (value is! Map<dynamic, dynamic>) {
+      return null;
+    }
+
+    final json = Map<String, dynamic>.from(value);
+    final heroBlockHeroIds = (json['heroBlockHeroIds'] as List<dynamic>? ??
+            const [])
+        .whereType<num>()
+        .map((heroId) => heroId.toInt())
+        .toList(growable: false);
+    final rawLabels = (json['heroBlockHeroLabels'] as List<dynamic>? ??
+            const [])
+        .whereType<String>()
+        .map((label) => label.trim())
+        .toList(growable: false);
+    final heroBlockHeroLabels = [
+      for (var index = 0; index < heroBlockHeroIds.length; index++)
+        index < rawLabels.length && rawLabels[index].isNotEmpty
+            ? rawLabels[index]
+            : 'Hero ${heroBlockHeroIds[index]}',
+    ];
+
+    return CoachingCheckpointSessionPlan(
+      queue: json['queue'] as String? ?? '',
+      heroBlock: json['heroBlock'] as String? ?? '',
+      target: json['target'] as String? ?? '',
+      reviewWindow: json['reviewWindow'] as String? ?? '',
+      targetType: _readTargetType(json['targetType'] as String?),
+      heroBlockHeroIds: heroBlockHeroIds,
+      heroBlockHeroLabels: heroBlockHeroLabels,
+      roleBlockKey: json['roleBlockKey'] as String?,
+      usesManualRoleSetup: json['usesManualRoleSetup'] as bool? ?? false,
+      usesManualHeroBlock: json['usesManualHeroBlock'] as bool? ?? false,
+    );
+  }
+
+  static SessionPlanTargetType _readTargetType(String? value) {
+    for (final targetType in SessionPlanTargetType.values) {
+      if (targetType.name == value) {
+        return targetType;
+      }
+    }
+
+    return SessionPlanTargetType.heroPool;
   }
 }
 
@@ -147,19 +339,25 @@ class CoachingCheckpointSample {
   final List<CoachingCheckpointMatchSummary> recentMatchesWindow;
 
   int? get latestMatchId {
+    var latestMatchId = 0;
     for (final match in recentMatchesWindow) {
       if (match.matchId > 0) {
-        return match.matchId;
+        latestMatchId = latestMatchId < match.matchId
+            ? match.matchId
+            : latestMatchId;
       }
     }
 
-    return null;
+    return latestMatchId > 0 ? latestMatchId : null;
   }
 
-  List<String> get recentWindowTokens =>
-      recentMatchesWindow.map((match) => match.windowToken).toList(growable: false);
+  List<String> get recentWindowTokens => recentMatchesWindow
+      .map((match) => match.windowToken)
+      .toList(growable: false);
 
-  String get reviewedBlockSignature => recentWindowTokens.join('|');
+  String get reviewedBlockFingerprint => recentWindowTokens.join('|');
+
+  String get reviewedBlockSignature => reviewedBlockFingerprint;
 
   factory CoachingCheckpointSample.fromImportedPlayer(
     ImportedPlayerData importedPlayer,
@@ -194,7 +392,7 @@ class CoachingCheckpointSample {
       primaryRoleKey: roleSummary.hasClearPrimaryRole
           ? roleSummary.primaryRole.name
           : null,
-      recentMatchesWindow: importedPlayer.recentMatches
+      recentMatchesWindow: matches
           .take(5)
           .map(
             (match) => CoachingCheckpointMatchSummary(
@@ -373,11 +571,7 @@ class CoachingCheckpointMatchSummary {
       matchId > 0 ? 'm$matchId' : 'h$heroId:${didWin ? 1 : 0}';
 
   Map<String, dynamic> toJson() {
-    return {
-      'matchId': matchId,
-      'heroId': heroId,
-      'didWin': didWin,
-    };
+    return {'matchId': matchId, 'heroId': heroId, 'didWin': didWin};
   }
 
   factory CoachingCheckpointMatchSummary.fromJson(Map<String, dynamic> json) {

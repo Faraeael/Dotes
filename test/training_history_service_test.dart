@@ -94,7 +94,7 @@ void main() {
       expect(history.entries, isEmpty);
       expect(
         history.fallbackMessage,
-        'No completed coaching cycles saved yet.',
+        'No completed cycles yet \u2014 finish your first 5-game block to see history here.',
       );
     });
 
@@ -118,7 +118,10 @@ void main() {
       final firstPass = service.build(checkpoints);
       final secondPass = service.build(checkpoints);
 
-      expect(firstPass.entries.first.focusLabel, secondPass.entries.first.focusLabel);
+      expect(
+        firstPass.entries.first.focusLabel,
+        secondPass.entries.first.focusLabel,
+      );
       expect(
         firstPass.entries.first.resultSummary,
         secondPass.entries.first.resultSummary,
