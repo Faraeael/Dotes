@@ -1,6 +1,6 @@
 enum TrainingBlockActionType {
-  start('Start 5-game block'),
-  restart('Restart block');
+  start('Start this 5-game block'),
+  restart('Restart this 5-game block');
 
   const TrainingBlockActionType(this.label);
 

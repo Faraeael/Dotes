@@ -21,12 +21,14 @@ class DashboardEmptyView extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: SectionCard(
-              title: 'No player loaded',
+              title: 'Start with one account import',
               body:
-                  'Import a Dota account to build the dashboard from recent matches.',
+                  'Import a Dota account to build the dashboard from recent matches.\n\n'
+                  'The first pass gives you the current read and one focused 5-game block. '
+                  'After those games, import again to review the block and save the summary.',
               action: OutlinedButton(
                 onPressed: onGoToImport,
-                child: const Text('Import player'),
+                child: const Text('Import account'),
               ),
             ),
           ),

@@ -17,11 +17,17 @@ void main() {
   ) async {
     await tester.pumpWidget(const ProviderScope(child: DotesApp()));
 
-    expect(find.text('Dota account ID'), findsOneWidget);
-    expect(find.text('Load dashboard'), findsOneWidget);
+    expect(find.text('Account ID'), findsOneWidget);
+    expect(find.text('Import account'), findsAtLeastNWidgets(2));
     expect(find.text('Import player'), findsOneWidget);
+    expect(
+      find.text(
+        'First import: get the read and session plan. Later import: review the finished block.',
+      ),
+      findsOneWidget,
+    );
 
     final appBar = tester.widget<AppBar>(find.byType(AppBar));
-    expect((appBar.title as Text).data, 'Dotes');
+    expect((appBar.title as Text).data, 'Import account');
   });
 }

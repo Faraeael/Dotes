@@ -61,7 +61,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     final state = ref.watch(playerImportControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dotes')),
+      appBar: AppBar(title: const Text('Import account')),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

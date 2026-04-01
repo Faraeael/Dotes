@@ -34,7 +34,14 @@ class PlayerIdForm extends StatelessWidget {
             const AppCardHeader(
               title: 'Import player',
               subtitle:
-                  'Enter a Dota account ID to load your latest sample and build the coaching loop.',
+                  'Enter a Dota account ID to load the latest sample and start the coaching loop.',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'First import: get the read and session plan. Later import: review the finished block.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 24),
             TextField(
@@ -47,8 +54,9 @@ class PlayerIdForm extends StatelessWidget {
                 LengthLimitingTextInputFormatter(20),
               ],
               decoration: const InputDecoration(
-                labelText: 'Dota account ID',
+                labelText: 'Account ID',
                 hintText: 'Example: 86745912',
+                helperText: 'Digits only. You can switch accounts later.',
               ),
               onChanged: onChanged,
               onSubmitted: (_) => onSubmit(),
@@ -80,7 +88,7 @@ class PlayerIdForm extends StatelessWidget {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Load dashboard'),
+                    : const Text('Import account'),
               ),
             ),
           ],

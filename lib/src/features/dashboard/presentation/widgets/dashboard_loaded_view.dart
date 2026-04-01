@@ -14,6 +14,7 @@ import '../../domain/models/block_review.dart';
 import '../../domain/models/comfort_core_summary.dart';
 import '../../domain/models/dashboard_verdict.dart';
 import '../../domain/models/dashboard_onboarding_guide.dart';
+import '../../domain/models/end_block_summary.dart';
 import '../../domain/models/session_plan.dart';
 import '../../domain/models/training_history.dart';
 import '../utils/imported_sample_summary.dart';
@@ -23,6 +24,7 @@ import 'dashboard_loaded_header.dart';
 import 'dashboard_onboarding_card.dart';
 import 'dashboard_section_group.dart';
 import 'dashboard_shell.dart';
+import 'end_block_summary_card.dart';
 import 'player_import_card.dart';
 import 'session_plan_card.dart';
 import 'verdict_card.dart';
@@ -43,8 +45,10 @@ class DashboardLoadedView extends StatelessWidget {
     required this.onDismissOnboarding,
     required this.onShowHowItWorks,
     required this.onGoToImport,
+    this.onSaveEndBlockSummary,
     this.dashboardVerdict,
     this.blockReview,
+    this.endBlockSummary,
     this.sessionPlan,
     this.nextGamesFocus,
     this.progressCheck,
@@ -71,7 +75,9 @@ class DashboardLoadedView extends StatelessWidget {
   final VoidCallback onShowPlaytestSummary;
   final VoidCallback onStartTrainingBlock, onDismissOnboarding;
   final VoidCallback onShowHowItWorks, onGoToImport;
+  final VoidCallback? onSaveEndBlockSummary;
   final DashboardVerdict? dashboardVerdict; final BlockReview? blockReview;
+  final EndBlockSummary? endBlockSummary;
   final SessionPlan? sessionPlan; final NextGamesFocus? nextGamesFocus;
   final ProgressCheck? progressCheck;
   final FocusFollowThroughCheck? focusFollowThrough;
@@ -106,6 +112,11 @@ class DashboardLoadedView extends StatelessWidget {
               if (dashboardVerdict != null)
                 VerdictCard(verdict: dashboardVerdict!),
               if (blockReview != null) BlockReviewCard(review: blockReview!),
+              if (endBlockSummary != null)
+                EndBlockSummaryCard(
+                  summary: endBlockSummary!,
+                  onSaveSummary: onSaveEndBlockSummary,
+                ),
               if (sessionPlan != null)
                 SessionPlanCard(
                   plan: sessionPlan!,

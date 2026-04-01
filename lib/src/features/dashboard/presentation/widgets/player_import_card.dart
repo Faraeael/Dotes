@@ -13,12 +13,12 @@ class PlayerImportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SectionCard(
-      title: 'Change player',
+      title: 'Import another account',
       body:
-          'Import a different account to refresh the coaching read.',
+          'Switch to a different account without mixing checkpoint history between testers.',
       action: OutlinedButton(
         onPressed: onGoToImport,
-        child: const Text('Go to import'),
+        child: const Text('Import another account'),
       ),
     );
   }

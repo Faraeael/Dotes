@@ -12,7 +12,9 @@ class TrainingBlockActionService {
       return TrainingBlockActionControl(
         actionType: TrainingBlockActionType.restart,
         blockStateLabel:
-            'Active block started on ${_formatDate(activeCheckpoint.savedAt)}',
+            'Current block started on ${_formatDate(activeCheckpoint.savedAt)}',
+        blockStateDetail:
+            'Restart only if you want to replace that start point with the current plan.',
       );
     }
 
@@ -23,8 +25,8 @@ class TrainingBlockActionService {
       actionType: TrainingBlockActionType.start,
       blockStateLabel: 'No active block yet',
       blockStateDetail: latestSavedCheckpoint == null
-          ? null
-          : 'Latest coaching state saved on ${_formatDate(latestSavedCheckpoint.savedAt)}.',
+          ? 'Start the current session plan before you queue the next 5 games.'
+          : 'Latest coaching state saved on ${_formatDate(latestSavedCheckpoint.savedAt)}. Start a fresh 5-game block when you are ready to judge the next run.',
     );
   }
 

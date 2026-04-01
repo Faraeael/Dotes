@@ -43,6 +43,13 @@ class SessionPlanBlockActionPanel extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 8),
+          Text(
+            _helperTextFor(control.actionType),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 12),
           FilledButton.tonal(
             onPressed: isSaving ? null : onPressed,
@@ -51,5 +58,14 @@ class SessionPlanBlockActionPanel extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _helperTextFor(TrainingBlockActionType actionType) {
+    return switch (actionType) {
+      TrainingBlockActionType.start =>
+        'This saves the current plan as the block you will review after 5 newer games.',
+      TrainingBlockActionType.restart =>
+        'Use restart only if you want to replace the active block start before reviewing it.',
+    };
   }
 }

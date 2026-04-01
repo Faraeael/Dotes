@@ -6,9 +6,11 @@ import '../../../features/checkpoints/application/coaching_checkpoint_providers.
 import '../../../features/checkpoints/application/training_block_action_providers.dart';
 import '../../../features/dashboard/application/dashboard_layout_providers.dart';
 import '../../../features/dashboard/application/block_review_provider.dart';
+import '../../../features/dashboard/application/block_summary_export_provider.dart';
 import '../../../features/dashboard/application/comfort_core_provider.dart';
 import '../../../features/dashboard/application/dashboard_onboarding_providers.dart';
 import '../../../features/dashboard/application/dashboard_verdict_provider.dart';
+import '../../../features/dashboard/application/end_block_summary_provider.dart';
 import '../../../features/dashboard/application/session_plan_provider.dart';
 import '../../../features/dashboard/application/training_history_provider.dart';
 import '../../../features/hero_detail/presentation/hero_detail_screen.dart';
@@ -26,6 +28,7 @@ import '../../../features/training_preferences/presentation/widgets/training_pre
 import 'utils/imported_sample_summary.dart';
 import 'widgets/dashboard_empty_view.dart';
 import 'widgets/dashboard_loaded_view.dart';
+import 'widgets/block_summary_export_dialog.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -53,6 +56,8 @@ class DashboardScreen extends ConsumerWidget {
     final comfortCore = ref.watch(comfortCoreProvider);
     final dashboardVerdict = ref.watch(dashboardVerdictProvider);
     final blockReview = ref.watch(blockReviewProvider);
+    final endBlockSummary = ref.watch(endBlockSummaryProvider);
+    final blockSummaryExport = ref.watch(blockSummaryExportProvider);
     final sessionPlan = ref.watch(sessionPlanProvider);
     final trainingHistory = ref.watch(trainingHistoryProvider);
     final checkpointSaveStatusSummary = ref.watch(
@@ -145,6 +150,7 @@ class DashboardScreen extends ConsumerWidget {
       testerFeedback: testerFeedback,
       dashboardVerdict: dashboardVerdict,
       blockReview: blockReview,
+      endBlockSummary: endBlockSummary,
       sessionPlan: sessionPlan,
       trainingHistory: trainingHistory,
       checkpointSaveStatusSummary: checkpointSaveStatusSummary,
@@ -182,6 +188,16 @@ class DashboardScreen extends ConsumerWidget {
       onShowPlaytestSummary: () {
         unawaited(showPlaytestSummary());
       },
+      onSaveEndBlockSummary: blockSummaryExport == null
+          ? null
+          : () {
+              unawaited(
+                BlockSummaryExportDialog.show(
+                  context,
+                  summary: blockSummaryExport,
+                ),
+              );
+            },
       onGoToImport: goToImport,
     );
   }

@@ -15,7 +15,10 @@ void main() {
 
       expect(control.actionType, TrainingBlockActionType.start);
       expect(control.blockStateLabel, 'No active block yet');
-      expect(control.blockStateDetail, isNull);
+      expect(
+        control.blockStateDetail,
+        'Start the current session plan before you queue the next 5 games.',
+      );
     });
 
     test('shows restart when an active checkpoint already exists', () {
@@ -25,7 +28,11 @@ void main() {
       );
 
       expect(control.actionType, TrainingBlockActionType.restart);
-      expect(control.blockStateLabel, 'Active block started on Mar 21, 2025');
+      expect(control.blockStateLabel, 'Current block started on Mar 21, 2025');
+      expect(
+        control.blockStateDetail,
+        'Restart only if you want to replace that start point with the current plan.',
+      );
     });
 
     test('keeps the state calm when a recent save exists without an active block', () {
@@ -40,7 +47,7 @@ void main() {
       expect(control.blockStateLabel, 'No active block yet');
       expect(
         control.blockStateDetail,
-        'Latest coaching state saved on Mar 22, 2025.',
+        'Latest coaching state saved on Mar 22, 2025. Start a fresh 5-game block when you are ready to judge the next run.',
       );
     });
   });

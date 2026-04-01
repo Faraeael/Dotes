@@ -4,6 +4,7 @@ import 'package:dotes/src/features/dashboard/domain/models/block_review.dart';
 import 'package:dotes/src/features/dashboard/domain/models/comfort_core_summary.dart';
 import 'package:dotes/src/features/dashboard/domain/models/dashboard_verdict.dart';
 import 'package:dotes/src/features/dashboard/domain/models/dashboard_onboarding_guide.dart';
+import 'package:dotes/src/features/dashboard/domain/models/end_block_summary.dart';
 import 'package:dotes/src/features/dashboard/domain/models/session_plan.dart';
 import 'package:dotes/src/features/dashboard/domain/models/training_history.dart';
 import 'package:dotes/src/features/dashboard/presentation/utils/imported_sample_summary.dart';
@@ -11,6 +12,7 @@ import 'package:dotes/src/features/dashboard/presentation/widgets/block_review_c
 import 'package:dotes/src/features/dashboard/presentation/widgets/comfort_core_card.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/imported_sample_card.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/dashboard_loaded_view.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/end_block_summary_card.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/session_plan_card.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/training_history_card.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/verdict_card.dart';
@@ -98,13 +100,53 @@ void main() {
           trainingBlockActionControl: TrainingBlockActionControl(
             actionType: TrainingBlockActionType.start,
             blockStateLabel: 'No active block yet',
+            blockStateDetail:
+                'Start the current session plan before you queue the next 5 games.',
           ),
         ),
       );
 
       expect(find.text('Training block'), findsOneWidget);
       expect(find.text('No active block yet'), findsOneWidget);
-      expect(find.text('Start 5-game block'), findsOneWidget);
+      expect(find.text('Start this 5-game block'), findsOneWidget);
+      expect(
+        find.text(
+          'This saves the current plan as the block you will review after 5 newer games.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('renders end block summary card when provided', (tester) async {
+      await tester.pumpWidget(
+        _DashboardLoadedViewHarness(
+          endBlockSummary: EndBlockSummary(
+            outcome: BlockReviewOutcome.onTrack,
+            mainTargetResult: 'Improved',
+            adherenceResult: 'Stayed in block',
+            takeaway: 'You stayed inside the block and deaths improved.',
+            nextStepSuggestion: 'Run the same block again.',
+          ),
+          onSaveEndBlockSummary: () {},
+        ),
+      );
+
+      expect(find.byType(EndBlockSummaryCard), findsOneWidget);
+      expect(find.text('End block summary'), findsOneWidget);
+      expect(find.text('Takeaway: You stayed inside the block and deaths improved.'), findsOneWidget);
+      expect(find.text('Next: Run the same block again.'), findsOneWidget);
+      expect(find.text('Save summary'), findsOneWidget);
+    });
+
+    testWidgets('save summary action is hidden when summary is not completed', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _DashboardLoadedViewHarness(onSaveEndBlockSummary: () {}),
+      );
+
+      expect(find.byType(EndBlockSummaryCard), findsNothing);
+      expect(find.text('Save summary'), findsNothing);
     });
 
     testWidgets('uses the loaded player name in the app bar', (tester) async {
@@ -141,7 +183,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(SessionPlanCard), findsOneWidget);
-      expect(find.text('Change player'), findsOneWidget);
+      expect(find.text('Import another account'), findsOneWidget);
 
       await tester.tap(find.text('Expand details'));
       await tester.pumpAndSettle();
@@ -413,6 +455,8 @@ class _DashboardLoadedViewHarness extends StatefulWidget {
       targetResult: BlockReviewTargetResult.improved,
       overallOutcome: BlockReviewOutcome.onTrack,
     ),
+    this.endBlockSummary,
+    this.onSaveEndBlockSummary,
     this.sessionPlan = const SessionPlan(
       queue: 'Carry only',
       heroBlock: 'Slardar + Mars',
@@ -471,6 +515,8 @@ class _DashboardLoadedViewHarness extends StatefulWidget {
   final List<CoachingInsight> coachingInsights;
   final DashboardVerdict dashboardVerdict;
   final BlockReview blockReview;
+  final EndBlockSummary? endBlockSummary;
+  final VoidCallback? onSaveEndBlockSummary;
   final SessionPlan sessionPlan;
   final NextGamesFocus nextGamesFocus;
   final CoachingSourceSummary coachingSourceSummary;
@@ -509,6 +555,7 @@ class _DashboardLoadedViewHarnessState
           coachingInsights: widget.coachingInsights,
           dashboardVerdict: widget.dashboardVerdict,
           blockReview: widget.blockReview,
+          endBlockSummary: widget.endBlockSummary,
           sessionPlan: widget.sessionPlan,
           nextGamesFocus: widget.nextGamesFocus,
           onboardingGuide: _showOnboarding ? _onboardingGuide : null,
@@ -538,6 +585,7 @@ class _DashboardLoadedViewHarnessState
           onEditTrainingPreferences: () {},
           onEditTesterFeedback: () {},
           onShowPlaytestSummary: () {},
+          onSaveEndBlockSummary: widget.onSaveEndBlockSummary,
           onGoToImport: () {},
         ),
       ),
