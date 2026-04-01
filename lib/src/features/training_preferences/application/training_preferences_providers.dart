@@ -100,6 +100,25 @@ class TrainingPreferencesController {
         preferences;
   }
 
+  Future<void> loadSeededForAccount(
+    int accountId,
+    TrainingPreferences preferences,
+  ) async {
+    final sessionRevision = ++_sessionRevision;
+    _ref.read(_loadedTrainingPreferencesAccountIdProvider.notifier).state =
+        null;
+    _ref.read(_loadedTrainingPreferencesStateProvider.notifier).state =
+        const TrainingPreferences();
+    if (_sessionRevision != sessionRevision) {
+      return;
+    }
+
+    _ref.read(_loadedTrainingPreferencesAccountIdProvider.notifier).state =
+        accountId;
+    _ref.read(_loadedTrainingPreferencesStateProvider.notifier).state =
+        preferences;
+  }
+
   Future<void> saveForAccount(
     int accountId,
     TrainingPreferences preferences,

@@ -183,7 +183,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(SessionPlanCard), findsOneWidget);
-      expect(find.text('Import another account'), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'Import another account'),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Expand details'));
       await tester.pumpAndSettle();

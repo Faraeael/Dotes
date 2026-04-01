@@ -1,4 +1,5 @@
 import '../../../player_import/domain/models/recent_match.dart';
+import '../../../meta_reference/domain/models/hero_meta_summary.dart';
 
 enum HeroDetailTag {
   comfortCore('Comfort core'),
@@ -73,6 +74,7 @@ class HeroDetail {
     required this.coachingRead,
     required this.trainingDecision,
     required this.blockContext,
+    required this.metaSummary,
     required this.recentMatches,
   });
 
@@ -89,5 +91,6 @@ class HeroDetail {
   final String coachingRead;
   final HeroTrainingDecision trainingDecision;
   final HeroBlockContext? blockContext;
+  final HeroMetaSummary metaSummary;
   final List<RecentMatch> recentMatches;
 }

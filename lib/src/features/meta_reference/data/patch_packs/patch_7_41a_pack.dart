@@ -1,0 +1,98 @@
+import '../../domain/models/hero_meta_reference.dart';
+import 'local_meta_patch_pack.dart';
+
+const patch741aMetaPack = LocalMetaPatchPack(
+  patchLabel: '7.41a',
+  heroReferences: {
+    17: HeroMetaReference(
+      heroId: 17,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.strong,
+      roleLabel: 'Mid tempo core',
+      coreItemDirection: 'Orchid or Kaya route into BKB timing',
+      skillBuildDirection: 'Max Remnant first for lane shove and kill reach',
+    ),
+    18: HeroMetaReference(
+      heroId: 18,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.niche,
+      roleLabel: 'Carry',
+      coreItemDirection: 'Mask of Madness into Blink or BKB timing',
+      skillBuildDirection: 'Max cleave and stun for cleaner farm-to-fight pacing',
+    ),
+    22: HeroMetaReference(
+      heroId: 22,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.strong,
+      roleLabel: 'Mid spell core',
+      coreItemDirection: 'Bottle tempo into shard and burst utility',
+      skillBuildDirection: 'Max Arc first, then burst for map tempo',
+    ),
+    25: HeroMetaReference(
+      heroId: 25,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.neutral,
+      roleLabel: 'Mid scaling core',
+      coreItemDirection: 'Farm accelerator into survivability and burst',
+    ),
+    28: HeroMetaReference(
+      heroId: 28,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.neutral,
+      roleLabel: 'Offlane initiator',
+      coreItemDirection: 'Blink into BKB or utility pickoff',
+      skillBuildDirection: 'Max crush first for cleaner jump control',
+    ),
+    29: HeroMetaReference(
+      heroId: 29,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.neutral,
+      roleLabel: 'Offlane anchor',
+      coreItemDirection: 'Aura frontlining into blink utility',
+    ),
+    48: HeroMetaReference(
+      heroId: 48,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.strong,
+      roleLabel: 'Carry',
+      coreItemDirection: 'Farm accelerator into BKB and damage timing',
+      skillBuildDirection: 'Max glaives and beam for lane-to-stack conversion',
+    ),
+    53: HeroMetaReference(
+      heroId: 53,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.strong,
+      roleLabel: 'Flex core',
+      coreItemDirection: 'Map pressure into orchid, gleipnir, or split push scaling',
+    ),
+    67: HeroMetaReference(
+      heroId: 67,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.neutral,
+      roleLabel: 'Carry',
+      coreItemDirection: 'Radiance or blademail path into late-game durability',
+    ),
+    96: HeroMetaReference(
+      heroId: 96,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.neutral,
+      roleLabel: 'Offlane initiator',
+      coreItemDirection: 'Blink into pipe, crimson, or front-line utility',
+    ),
+    129: HeroMetaReference(
+      heroId: 129,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.top,
+      roleLabel: 'Offlane initiator',
+      coreItemDirection: 'Blink into BKB and teamfight control',
+      skillBuildDirection: 'Max spear and rebuke for lane pressure and burst',
+    ),
+    135: HeroMetaReference(
+      heroId: 135,
+      patchLabel: '7.41a',
+      tier: HeroMetaTier.strong,
+      roleLabel: 'Offlane fighter',
+      coreItemDirection: 'Blink or aura tempo into durable teamfight',
+    ),
+  },
+);

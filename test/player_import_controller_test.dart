@@ -7,11 +7,14 @@ import 'package:dotes/src/features/checkpoints/domain/models/coaching_checkpoint
 import 'package:dotes/src/features/checkpoints/domain/repositories/coaching_checkpoint_repository.dart';
 import 'package:dotes/src/features/player_import/application/imported_player_provider.dart';
 import 'package:dotes/src/features/player_import/application/player_import_controller.dart';
+import 'package:dotes/src/features/player_import/application/saved_accounts_providers.dart';
 import 'package:dotes/src/features/player_import/data/repositories/opendota_player_repository.dart';
 import 'package:dotes/src/features/player_import/domain/models/imported_player_data.dart';
 import 'package:dotes/src/features/player_import/domain/models/player_profile_summary.dart';
 import 'package:dotes/src/features/player_import/domain/models/recent_match.dart';
+import 'package:dotes/src/features/player_import/domain/models/saved_account_entry.dart';
 import 'package:dotes/src/features/player_import/domain/repositories/player_import_repository.dart';
+import 'package:dotes/src/features/player_import/domain/repositories/saved_account_repository.dart';
 import 'package:dotes/src/features/tester_feedback/application/tester_feedback_providers.dart';
 import 'package:dotes/src/features/tester_feedback/domain/models/tester_feedback.dart';
 import 'package:dotes/src/features/tester_feedback/domain/models/tester_feedback_record.dart';
@@ -32,6 +35,7 @@ void main() {
       final checkpointRepository = FakeCoachingCheckpointRepository();
       final testerFeedbackRepository = FakeTesterFeedbackRepository();
       final trainingPreferencesRepository = FakeTrainingPreferencesRepository();
+      final savedAccountRepository = FakeSavedAccountRepository();
       final container = ProviderContainer(
         overrides: [
           playerImportRepositoryProvider.overrideWithValue(repository),
@@ -43,6 +47,10 @@ void main() {
           ),
           trainingPreferencesRepositoryProvider.overrideWithValue(
             trainingPreferencesRepository,
+          ),
+          savedAccountRepositoryProvider.overrideWithValue(savedAccountRepository),
+          savedAccountsClockProvider.overrideWithValue(
+            () => DateTime.utc(2026, 4, 1, 12),
           ),
         ],
       );
@@ -65,6 +73,9 @@ void main() {
       expect(importedPlayer, isNotNull);
       expect(importedPlayer!.profile.accountId, 86745912);
       expect(importedPlayer.recentMatches, hasLength(1));
+      expect(savedAccountRepository.entries, hasLength(1));
+      expect(savedAccountRepository.entries.single.accountId, 86745912);
+      expect(savedAccountRepository.entries.single.displayName, 'Week 1 Player');
     });
 
     test('clears stale imported data on validation failure', () async {
@@ -423,6 +434,208 @@ void main() {
       expect(success, isTrue);
       expect(container.read(currentTesterFeedbackProvider), isNull);
     });
+
+    test('loads a seeded demo scenario into imported state', () async {
+      final repository = FakePlayerImportRepository(
+        profileResult: Success(_profile()),
+        recentMatchesResult: Success([_match()]),
+      );
+      final checkpointRepository = FakeCoachingCheckpointRepository();
+      final testerFeedbackRepository = FakeTesterFeedbackRepository();
+      final trainingPreferencesRepository = FakeTrainingPreferencesRepository();
+      final savedAccountRepository = FakeSavedAccountRepository();
+      final container = ProviderContainer(
+        overrides: [
+          playerImportRepositoryProvider.overrideWithValue(repository),
+          coachingCheckpointRepositoryProvider.overrideWithValue(
+            checkpointRepository,
+          ),
+          testerFeedbackRepositoryProvider.overrideWithValue(
+            testerFeedbackRepository,
+          ),
+          trainingPreferencesRepositoryProvider.overrideWithValue(
+            trainingPreferencesRepository,
+          ),
+          savedAccountRepositoryProvider.overrideWithValue(savedAccountRepository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(playerImportControllerProvider.notifier);
+      final scenario = container
+          .read(demoPlayerScenariosProvider)
+          .firstWhere((item) => item.id == 'completed_on_track_block');
+
+      final success = await controller.importDemoScenario(scenario);
+
+      expect(success, isTrue);
+      final importedPlayer = container.read(importedPlayerProvider);
+      expect(importedPlayer, isNotNull);
+      expect(importedPlayer!.source.isDemo, isTrue);
+      expect(
+        importedPlayer.source.scenarioLabel,
+        'Completed on-track block',
+      );
+      expect(
+        container.read(previousCoachingCheckpointProvider)?.savedSessionPlan,
+        isNotNull,
+      );
+      expect(container.read(coachingCheckpointHistoryProvider), hasLength(2));
+      expect(
+        container.read(currentTrainingPreferencesProvider).activeLockedHeroIds,
+        [28, 129],
+      );
+      expect(
+        container.read(currentTesterFeedbackProvider)?.trimmedNote,
+        contains('on-track review'),
+      );
+      expect(checkpointRepository.loadCalls, isEmpty);
+      expect(repository.profileCalls, 0);
+      expect(repository.recentMatchesCalls, 0);
+    });
+
+    test('demo state stays isolated from real imported accounts', () async {
+      final repository = FakePlayerImportRepository(
+        profileResult: Success(_profile(accountId: 86745912)),
+        recentMatchesResult: Success([_match()]),
+      );
+      final checkpointRepository = FakeCoachingCheckpointRepository(
+        storedCheckpoints: {86745912: _checkpoint(accountId: 86745912)},
+      );
+      final testerFeedbackRepository = FakeTesterFeedbackRepository(
+        storedFeedback: {
+          86745912: const TesterFeedback(
+            rating: TesterFeedbackRating.clear,
+            note: 'Real account feedback',
+          ),
+        },
+      );
+      final trainingPreferencesRepository = FakeTrainingPreferencesRepository(
+        storedPreferences: {
+          86745912: const TrainingPreferences(
+            coachingMode: TrainingCoachingMode.preferManualSetup,
+            preferredRole: TrainingRolePreference.carry,
+            lockedHeroIds: [8, 48],
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          playerImportRepositoryProvider.overrideWithValue(repository),
+          coachingCheckpointRepositoryProvider.overrideWithValue(
+            checkpointRepository,
+          ),
+          testerFeedbackRepositoryProvider.overrideWithValue(
+            testerFeedbackRepository,
+          ),
+          trainingPreferencesRepositoryProvider.overrideWithValue(
+            trainingPreferencesRepository,
+          ),
+          savedAccountRepositoryProvider.overrideWithValue(
+            FakeSavedAccountRepository(),
+          ),
+          savedAccountsClockProvider.overrideWithValue(
+            () => DateTime.utc(2026, 4, 1, 12),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(playerImportControllerProvider.notifier);
+      final demoScenario = container
+          .read(demoPlayerScenariosProvider)
+          .firstWhere((item) => item.id == 'completed_off_track_block');
+
+      expect(await controller.importDemoScenario(demoScenario), isTrue);
+      expect(
+        container.read(importedPlayerProvider)?.profile.accountId,
+        demoScenario.importedPlayer.profile.accountId,
+      );
+      expect(
+        container.read(currentTesterFeedbackProvider)?.trimmedNote,
+        contains('drift outside the block'),
+      );
+      expect(
+        container.read(currentTrainingPreferencesProvider).activeLockedHeroIds,
+        [28, 129],
+      );
+
+      controller.updatePlayerId('86745912');
+      expect(await controller.submit(), isTrue);
+
+      expect(
+        container.read(importedPlayerProvider)?.profile.accountId,
+        86745912,
+      );
+      expect(
+        container.read(currentTesterFeedbackProvider)?.trimmedNote,
+        'Real account feedback',
+      );
+      expect(
+        container.read(currentTrainingPreferencesProvider).activeLockedHeroIds,
+        [8, 48],
+      );
+      expect(
+        container.read(previousCoachingCheckpointProvider)?.accountId,
+        86745912,
+      );
+      expect(repository.profileCalls, 1);
+      expect(repository.recentMatchesCalls, 1);
+    });
+
+    test('reopens a saved account and refreshes the last-opened order', () async {
+      final repository = FakePlayerImportRepository(
+        profileResult: Success(_profile(accountId: 2222)),
+        recentMatchesResult: Success([_match()]),
+      );
+      final savedAccountRepository = FakeSavedAccountRepository(
+        initialEntries: [
+          SavedAccountEntry(
+            accountId: 86745912,
+            displayName: 'Week 1 Player',
+            sourceType: SavedAccountSourceType.real,
+            lastOpenedAt: DateTime.utc(2026, 3, 31, 12),
+          ),
+          SavedAccountEntry(
+            accountId: 2222,
+            displayName: 'Offlane Player',
+            sourceType: SavedAccountSourceType.real,
+            lastOpenedAt: DateTime.utc(2026, 3, 30, 12),
+          ),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          playerImportRepositoryProvider.overrideWithValue(repository),
+          coachingCheckpointRepositoryProvider.overrideWithValue(
+            FakeCoachingCheckpointRepository(),
+          ),
+          testerFeedbackRepositoryProvider.overrideWithValue(
+            FakeTesterFeedbackRepository(),
+          ),
+          trainingPreferencesRepositoryProvider.overrideWithValue(
+            FakeTrainingPreferencesRepository(),
+          ),
+          savedAccountRepositoryProvider.overrideWithValue(savedAccountRepository),
+          savedAccountsClockProvider.overrideWithValue(
+            () => DateTime.utc(2026, 4, 1, 18),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(playerImportControllerProvider.notifier);
+      final savedAccount = savedAccountRepository.entries.last;
+
+      expect(await controller.submitSavedAccount(savedAccount), isTrue);
+      expect(container.read(importedPlayerProvider)?.profile.accountId, 2222);
+      expect(
+        container.read(lastOpenedSavedAccountProvider)?.accountId,
+        2222,
+      );
+      expect(savedAccountRepository.entries.first.accountId, 2222);
+      expect(savedAccountRepository.entries.first.displayName, 'Week 1 Player');
+    });
   });
 }
 
@@ -530,6 +743,48 @@ class FakeTrainingPreferencesRepository
     TrainingPreferences preferences,
   ) async {
     _storedPreferences[accountId] = preferences;
+  }
+}
+
+class FakeSavedAccountRepository implements SavedAccountRepository {
+  FakeSavedAccountRepository({
+    List<SavedAccountEntry>? initialEntries,
+  }) : entries = [...?initialEntries];
+
+  List<SavedAccountEntry> entries;
+
+  @override
+  Future<List<SavedAccountEntry>> loadAll() async {
+    return [...entries];
+  }
+
+  @override
+  Future<void> remove(int accountId) async {
+    entries = entries.where((entry) => entry.accountId != accountId).toList();
+  }
+
+  @override
+  Future<void> saveEntry(SavedAccountEntry entry) async {
+    final index = entries.indexWhere(
+      (candidate) => candidate.accountId == entry.accountId,
+    );
+    if (index >= 0) {
+      final isPinned = entries[index].isPinned;
+      entries[index] = entry.copyWith(isPinned: isPinned);
+    } else {
+      entries.add(entry);
+    }
+    entries.sort((left, right) => right.lastOpenedAt.compareTo(left.lastOpenedAt));
+  }
+
+  @override
+  Future<void> setPinnedAccount(int? accountId) async {
+    entries = [
+      for (final entry in entries)
+        entry.copyWith(
+          isPinned: accountId != null && entry.accountId == accountId,
+        ),
+    ];
   }
 }
 

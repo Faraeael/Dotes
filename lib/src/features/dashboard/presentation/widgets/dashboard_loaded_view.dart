@@ -16,6 +16,7 @@ import '../../domain/models/dashboard_verdict.dart';
 import '../../domain/models/dashboard_onboarding_guide.dart';
 import '../../domain/models/end_block_summary.dart';
 import '../../domain/models/session_plan.dart';
+import '../../domain/models/session_plan_meta_sanity.dart';
 import '../../domain/models/training_history.dart';
 import '../utils/imported_sample_summary.dart';
 import 'block_review_card.dart';
@@ -50,6 +51,7 @@ class DashboardLoadedView extends StatelessWidget {
     this.blockReview,
     this.endBlockSummary,
     this.sessionPlan,
+    this.sessionPlanMetaSanity,
     this.nextGamesFocus,
     this.progressCheck,
     this.focusFollowThrough,
@@ -79,6 +81,7 @@ class DashboardLoadedView extends StatelessWidget {
   final DashboardVerdict? dashboardVerdict; final BlockReview? blockReview;
   final EndBlockSummary? endBlockSummary;
   final SessionPlan? sessionPlan; final NextGamesFocus? nextGamesFocus;
+  final SessionPlanMetaSanity? sessionPlanMetaSanity;
   final ProgressCheck? progressCheck;
   final FocusFollowThroughCheck? focusFollowThrough;
   final ComfortCoreSummary? comfortCore; final TesterFeedback? testerFeedback;
@@ -120,6 +123,7 @@ class DashboardLoadedView extends StatelessWidget {
               if (sessionPlan != null)
                 SessionPlanCard(
                   plan: sessionPlan!,
+                  metaSanity: sessionPlanMetaSanity,
                   onSelectHero: onOpenHeroDetail,
                   trainingBlockActionControl: trainingBlockActionControl,
                   onStartTrainingBlock: onStartTrainingBlock,
@@ -153,7 +157,10 @@ class DashboardLoadedView extends StatelessWidget {
             onShowPlaytestSummary: onShowPlaytestSummary,
           ),
           const SizedBox(height: 24),
-          PlayerImportCard(onGoToImport: onGoToImport),
+          PlayerImportCard(
+            importedPlayer: importedPlayer,
+            onGoToImport: onGoToImport,
+          ),
         ],
       ),
     );

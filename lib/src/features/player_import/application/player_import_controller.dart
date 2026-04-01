@@ -4,10 +4,18 @@ import '../../../core/result/result.dart';
 import '../../checkpoints/application/coaching_checkpoint_providers.dart';
 import '../../tester_feedback/application/tester_feedback_providers.dart';
 import '../../training_preferences/application/training_preferences_providers.dart';
+import '../data/demo/demo_player_scenarios.dart';
 import '../data/repositories/opendota_player_repository.dart';
+import '../domain/models/demo_player_scenario.dart';
 import '../domain/models/imported_player_data.dart';
+import '../domain/models/saved_account_entry.dart';
 import '../domain/repositories/player_import_repository.dart';
+import 'saved_accounts_providers.dart';
 import 'imported_player_provider.dart';
+
+final demoPlayerScenariosProvider = Provider<List<DemoPlayerScenario>>((ref) {
+  return demoPlayerScenarios;
+});
 
 final playerImportControllerProvider =
     StateNotifierProvider<PlayerImportController, PlayerImportState>((ref) {
@@ -103,6 +111,11 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
               await _ref
                   .read(trainingPreferencesControllerProvider)
                   .loadForAccount(importedPlayer.profile.accountId);
+              try {
+                await _ref
+                    .read(savedAccountsControllerProvider.notifier)
+                    .saveRealAccount(importedPlayer.profile);
+              } catch (_) {}
               _ref.read(importedPlayerProvider.notifier).state = importedPlayer;
               state = state.copyWith(
                 playerId: trimmed,
@@ -121,6 +134,57 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
       );
       return false;
     }
+  }
+
+  Future<bool> importDemoScenario(DemoPlayerScenario scenario) async {
+    if (state.isSubmitting) {
+      return false;
+    }
+
+    _clearCheckpointSession();
+    _clearTesterFeedbackSession();
+    _clearTrainingPreferencesSession();
+    _clearImportedPlayer();
+    state = state.copyWith(
+      playerId: '',
+      errorMessage: null,
+      isSubmitting: true,
+    );
+
+    try {
+      await _ref
+          .read(checkpointPersistenceControllerProvider)
+          .loadSeededHistoryForAccount(
+            scenario.importedPlayer.profile.accountId,
+            [...scenario.checkpointHistory],
+          );
+      await _ref
+          .read(testerFeedbackControllerProvider)
+          .loadSeededForAccount(
+            scenario.importedPlayer.profile.accountId,
+            scenario.testerFeedback,
+          );
+      await _ref
+          .read(trainingPreferencesControllerProvider)
+          .loadSeededForAccount(
+            scenario.importedPlayer.profile.accountId,
+            scenario.trainingPreferences,
+          );
+      _ref.read(importedPlayerProvider.notifier).state = scenario.importedPlayer;
+      state = const PlayerImportState();
+      return true;
+    } catch (_) {
+      state = state.copyWith(
+        errorMessage: 'Something went wrong while loading this demo scenario.',
+        isSubmitting: false,
+      );
+      return false;
+    }
+  }
+
+  Future<bool> submitSavedAccount(SavedAccountEntry entry) async {
+    updatePlayerId(entry.accountId.toString());
+    return submit();
   }
 
   String _normalizePlayerId(String value) {

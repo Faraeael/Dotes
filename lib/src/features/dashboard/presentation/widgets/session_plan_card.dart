@@ -7,12 +7,14 @@ import '../../../../app/widgets/app_status_badge.dart';
 import '../../../checkpoints/domain/models/training_block_action.dart';
 import '../../../matches/presentation/utils/hero_labels.dart';
 import '../../domain/models/session_plan.dart';
+import '../../domain/models/session_plan_meta_sanity.dart';
 import 'hero_link_chips.dart';
 import 'session_plan_block_action_panel.dart';
 
 class SessionPlanCard extends StatelessWidget {
   const SessionPlanCard({
     required this.plan,
+    this.metaSanity,
     this.onSelectHero,
     this.trainingBlockActionControl,
     this.onStartTrainingBlock,
@@ -21,6 +23,7 @@ class SessionPlanCard extends StatelessWidget {
   });
 
   final SessionPlan plan;
+  final SessionPlanMetaSanity? metaSanity;
   final ValueChanged<int>? onSelectHero;
   final TrainingBlockActionControl? trainingBlockActionControl;
   final VoidCallback? onStartTrainingBlock;
@@ -67,6 +70,10 @@ class SessionPlanCard extends StatelessWidget {
                 onSelectHero: onSelectHero!,
               ),
             ],
+            if (metaSanity != null) ...[
+              const SizedBox(height: 12),
+              _SessionPlanMetaSanityPanel(metaSanity: metaSanity!),
+            ],
             if (trainingBlockActionControl != null &&
                 onStartTrainingBlock != null) ...[
               const SizedBox(height: 12),
@@ -105,5 +112,55 @@ class SessionPlanCard extends StatelessWidget {
     }
 
     return null;
+  }
+}
+
+class _SessionPlanMetaSanityPanel extends StatelessWidget {
+  const _SessionPlanMetaSanityPanel({required this.metaSanity});
+
+  final SessionPlanMetaSanity metaSanity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  'Meta sanity',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              AppStatusBadge(
+                label: metaSanity.status.label,
+                tone: _toneFor(metaSanity.status),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(metaSanity.message),
+        ],
+      ),
+    );
+  }
+
+  AppStatusTone _toneFor(SessionPlanMetaSanityStatus status) {
+    return switch (status) {
+      SessionPlanMetaSanityStatus.metaAligned => AppStatusTone.positive,
+      SessionPlanMetaSanityStatus.mixed => AppStatusTone.info,
+      SessionPlanMetaSanityStatus.comfortFirst => AppStatusTone.warning,
+      SessionPlanMetaSanityStatus.noReference => AppStatusTone.neutral,
+      SessionPlanMetaSanityStatus.stale => AppStatusTone.warning,
+    };
   }
 }

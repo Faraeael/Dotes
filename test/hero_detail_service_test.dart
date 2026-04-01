@@ -4,6 +4,7 @@ import 'package:dotes/src/features/dashboard/domain/models/comfort_core_summary.
 import 'package:dotes/src/features/dashboard/domain/models/session_plan.dart';
 import 'package:dotes/src/features/hero_detail/domain/models/hero_detail.dart';
 import 'package:dotes/src/features/hero_detail/domain/services/hero_detail_service.dart';
+import 'package:dotes/src/features/meta_reference/domain/models/hero_meta_reference.dart';
 import 'package:dotes/src/features/player_import/domain/models/recent_match.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -175,6 +176,100 @@ void main() {
         'Need at least 2 baseline and 2 block games on this hero.',
       );
     });
+
+    test('builds a strong meta reference read when personal state agrees', () {
+      final detail = service.build(
+        heroId: 129,
+        allMatches: _sampleMatches(),
+        heroLabelFor: _heroLabelFor,
+        currentSupportedPatchLabel: '7.41a',
+        comfortCore: _comfortCoreSummary(),
+        metaReference: const HeroMetaReference(
+          heroId: 129,
+          patchLabel: '7.41a',
+          tier: HeroMetaTier.top,
+          roleLabel: 'Offlane initiator',
+          coreItemDirection: 'Blink into BKB and control',
+        ),
+      );
+
+      expect(detail.metaSummary.hasReference, isTrue);
+      expect(detail.metaSummary.reference!.patchLabel, '7.41a');
+      expect(detail.metaSummary.isFresh, isTrue);
+      expect(
+        detail.metaSummary.interpretation,
+        'This hero currently matches the high-level meta.',
+      );
+    });
+
+    test('uses a calm fallback when no meta reference is available', () {
+      final detail = service.build(
+        heroId: 777,
+        allMatches: _metaFallbackMatches(),
+        heroLabelFor: _heroLabelFor,
+        currentSupportedPatchLabel: '7.41a',
+      );
+
+      expect(detail.metaSummary.hasReference, isFalse);
+      expect(
+        detail.metaSummary.fallbackMessage,
+        'No local meta reference is seeded for this hero yet.',
+      );
+      expect(
+        detail.metaSummary.interpretation,
+        'Lean on your own coaching sample for this hero right now.',
+      );
+    });
+
+    test('calls out when comfort and meta pull in different directions', () {
+      final detail = service.build(
+        heroId: 28,
+        allMatches: _sampleMatches(),
+        heroLabelFor: _heroLabelFor,
+        currentSupportedPatchLabel: '7.41a',
+        comfortCore: _comfortCoreSummary(),
+        metaReference: const HeroMetaReference(
+          heroId: 28,
+          patchLabel: '7.41a',
+          tier: HeroMetaTier.niche,
+          roleLabel: 'Offlane initiator',
+          coreItemDirection: 'Blink into BKB or utility',
+        ),
+      );
+
+      expect(detail.tags, contains(HeroDetailTag.comfortCore));
+      expect(
+        detail.metaSummary.interpretation,
+        'This hero is more comfort-driven than meta-driven right now.',
+      );
+    });
+
+    test('downgrades the interpretation when meta is outdated', () {
+      final detail = service.build(
+        heroId: 129,
+        allMatches: _sampleMatches(),
+        heroLabelFor: _heroLabelFor,
+        currentSupportedPatchLabel: '7.41b',
+        comfortCore: _comfortCoreSummary(),
+        metaReference: const HeroMetaReference(
+          heroId: 129,
+          patchLabel: '7.41a',
+          tier: HeroMetaTier.top,
+          roleLabel: 'Offlane initiator',
+          coreItemDirection: 'Blink into BKB and control',
+        ),
+      );
+
+      expect(detail.metaSummary.isStale, isTrue);
+      expect(
+        detail.metaSummary.staleWarning,
+        'Meta reference is outdated for the current patch.',
+      );
+      expect(
+        detail.metaSummary.interpretation,
+        'Lean on your own sample until meta data is refreshed.',
+      );
+    });
   });
 }
 
@@ -259,11 +354,22 @@ List<RecentMatch> _postCheckpointMatches() {
   ];
 }
 
+List<RecentMatch> _metaFallbackMatches() {
+  return [
+    _match(matchId: 21, heroId: 777, didWin: true, daysAgo: 1),
+    _match(matchId: 22, heroId: 777, didWin: false, daysAgo: 2),
+    _match(matchId: 23, heroId: 777, didWin: true, daysAgo: 3),
+    _match(matchId: 24, heroId: 28, didWin: true, daysAgo: 4),
+    _match(matchId: 25, heroId: 129, didWin: false, daysAgo: 5),
+  ];
+}
+
 String _heroLabelFor(int heroId) {
   return switch (heroId) {
     28 => 'Slardar',
     129 => 'Mars',
     18 => 'Sven',
+    777 => 'Hero 777',
     _ => 'Hero $heroId',
   };
 }

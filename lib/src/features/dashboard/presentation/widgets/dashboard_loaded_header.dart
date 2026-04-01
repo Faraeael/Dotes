@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_status_badge.dart';
 import '../../../player_import/domain/models/imported_player_data.dart';
 import 'player_summary_card.dart';
 
@@ -25,6 +26,14 @@ class DashboardLoadedHeader extends StatelessWidget {
             letterSpacing: 0.6,
           ),
         ),
+        if (importedPlayer.source.isDemo) ...[
+          const SizedBox(height: 8),
+          AppStatusBadge(
+            label:
+                'Demo scenario: ${importedPlayer.source.scenarioLabel ?? importedPlayer.profile.displayName}',
+            tone: AppStatusTone.warning,
+          ),
+        ],
         const SizedBox(height: 8),
         Text(
           importedPlayer.profile.displayName,
@@ -38,7 +47,10 @@ class DashboardLoadedHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-        PlayerSummaryCard(profile: importedPlayer.profile),
+        PlayerSummaryCard(
+          profile: importedPlayer.profile,
+          source: importedPlayer.source,
+        ),
       ],
     );
   }

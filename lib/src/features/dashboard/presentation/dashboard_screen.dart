@@ -59,6 +59,7 @@ class DashboardScreen extends ConsumerWidget {
     final endBlockSummary = ref.watch(endBlockSummaryProvider);
     final blockSummaryExport = ref.watch(blockSummaryExportProvider);
     final sessionPlan = ref.watch(sessionPlanProvider);
+    final sessionPlanMetaSanity = ref.watch(sessionPlanMetaSanityProvider);
     final trainingHistory = ref.watch(trainingHistoryProvider);
     final checkpointSaveStatusSummary = ref.watch(
       checkpointSaveStatusSummaryProvider,
@@ -152,6 +153,7 @@ class DashboardScreen extends ConsumerWidget {
       blockReview: blockReview,
       endBlockSummary: endBlockSummary,
       sessionPlan: sessionPlan,
+      sessionPlanMetaSanity: sessionPlanMetaSanity,
       trainingHistory: trainingHistory,
       checkpointSaveStatusSummary: checkpointSaveStatusSummary,
       trainingBlockActionControl: trainingBlockActionControl,

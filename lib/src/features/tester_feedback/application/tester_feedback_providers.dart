@@ -87,6 +87,22 @@ class TesterFeedbackController {
     _ref.read(_loadedTesterFeedbackStateProvider.notifier).state = feedback;
   }
 
+  Future<void> loadSeededForAccount(
+    int accountId,
+    TesterFeedback? feedback,
+  ) async {
+    final sessionRevision = ++_sessionRevision;
+    _ref.read(_loadedTesterFeedbackAccountIdProvider.notifier).state = null;
+    _ref.read(_loadedTesterFeedbackStateProvider.notifier).state = null;
+    if (_sessionRevision != sessionRevision) {
+      return;
+    }
+
+    _ref.read(_loadedTesterFeedbackAccountIdProvider.notifier).state =
+        accountId;
+    _ref.read(_loadedTesterFeedbackStateProvider.notifier).state = feedback;
+  }
+
   Future<void> saveForAccount(
     int accountId,
     TesterFeedback feedback, {

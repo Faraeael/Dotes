@@ -5,9 +5,14 @@ import '../../../../app/widgets/app_metric_tile.dart';
 import '../../domain/models/hero_detail.dart';
 
 class HeroDetailHeaderCard extends StatelessWidget {
-  const HeroDetailHeaderCard({required this.detail, super.key});
+  const HeroDetailHeaderCard({
+    required this.detail,
+    this.onCompareHero,
+    super.key,
+  });
 
   final HeroDetail detail;
+  final VoidCallback? onCompareHero;
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +26,13 @@ class HeroDetailHeaderCard extends StatelessWidget {
               detail.heroName,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
+            if (onCompareHero != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: onCompareHero,
+                child: const Text('Compare with another hero'),
+              ),
+            ],
             if (detail.tags.isNotEmpty) ...[
               const SizedBox(height: 12),
               Wrap(

@@ -3,6 +3,8 @@ import '../../../dashboard/domain/models/comfort_core_summary.dart';
 import '../../../dashboard/domain/models/block_review.dart';
 import '../../../dashboard/domain/models/session_plan.dart';
 import '../../../dashboard/domain/services/reviewed_block_window_service.dart';
+import '../../../meta_reference/domain/models/hero_meta_reference.dart';
+import '../../../meta_reference/domain/services/hero_meta_summary_service.dart';
 import '../../../player_import/domain/models/recent_match.dart';
 import '../models/hero_detail.dart';
 
@@ -10,7 +12,10 @@ class HeroDetailService {
   const HeroDetailService({
     ReviewedBlockWindowService reviewedBlockWindowService =
         const ReviewedBlockWindowService(),
-  }) : _reviewedBlockWindowService = reviewedBlockWindowService;
+    HeroMetaSummaryService heroMetaSummaryService =
+        const HeroMetaSummaryService(),
+  }) : _reviewedBlockWindowService = reviewedBlockWindowService,
+       _heroMetaSummaryService = heroMetaSummaryService;
 
   static const int minimumMatchesForStrongRead = 3;
   static const int _minimumHeroHistoryMatches = 2;
@@ -19,11 +24,14 @@ class HeroDetailService {
   static const double _heroTrendMargin = 0.1;
 
   final ReviewedBlockWindowService _reviewedBlockWindowService;
+  final HeroMetaSummaryService _heroMetaSummaryService;
 
   HeroDetail build({
     required int heroId,
     required List<RecentMatch> allMatches,
     required String Function(int heroId) heroLabelFor,
+    HeroMetaReference? metaReference,
+    String currentSupportedPatchLabel = '',
     ComfortCoreSummary? comfortCore,
     SessionPlan? sessionPlan,
     CoachingCheckpoint? previousCheckpoint,
@@ -74,6 +82,16 @@ class HeroDetailService {
       isInCurrentPlan: isInCurrentPlan,
       isOutsideCurrentPlan: isOutsideCurrentPlan,
     );
+    final metaSummary = _heroMetaSummaryService.build(
+      reference: metaReference,
+      currentSupportedPatchLabel: currentSupportedPatchLabel,
+      hasStrongRead: hasStrongRead,
+      isInComfortCore: isInComfortCore,
+      isInCurrentPlan: isInCurrentPlan,
+      isOutsideCurrentPlan: isOutsideCurrentPlan,
+      isStrongerRecentPick: isStrongerRecentPick,
+      isWeakerThanTopBlock: isWeakerThanTopBlock,
+    );
 
     return HeroDetail(
       heroId: heroId,
@@ -112,6 +130,7 @@ class HeroDetailService {
         previousCheckpoint: previousCheckpoint,
         blockReview: blockReview,
       ),
+      metaSummary: metaSummary,
       recentMatches: sortedHeroMatches,
     );
   }

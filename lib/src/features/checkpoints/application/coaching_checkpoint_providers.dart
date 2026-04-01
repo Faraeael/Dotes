@@ -143,6 +143,29 @@ class CheckpointPersistenceController {
     _ref.read(previousCoachingCheckpointProvider.notifier).state = checkpoint;
   }
 
+  Future<void> loadSeededHistoryForAccount(
+    int accountId,
+    List<CoachingCheckpoint> history,
+  ) async {
+    final sessionRevision = ++_sessionRevision;
+    _saveInFlight = null;
+    _saveInFlightFingerprint = null;
+    _lastProcessedDraftFingerprint = null;
+    _lastProcessedDecision = null;
+    _ref.read(latestCheckpointSaveDecisionProvider.notifier).state = null;
+
+    final seededHistory = history
+      ..sort(_compareCheckpointsBySavedAtDesc);
+    if (_sessionRevision != sessionRevision) {
+      return;
+    }
+
+    _ref.read(coachingCheckpointHistoryProvider.notifier).state =
+        seededHistory;
+    _ref.read(previousCoachingCheckpointProvider.notifier).state =
+        seededHistory.isEmpty ? null : seededHistory.first;
+  }
+
   Future<CheckpointSaveDecision> saveCurrentDraftIfNeeded(
     CoachingCheckpointDraft draft,
   ) async {

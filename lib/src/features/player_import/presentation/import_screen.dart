@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/router/app_router.dart';
 import '../application/player_import_controller.dart';
+import '../application/saved_accounts_providers.dart';
+import '../domain/models/demo_player_scenario.dart';
+import '../domain/models/saved_account_entry.dart';
+import 'widgets/demo_scenario_section.dart';
 import 'widgets/player_id_form.dart';
+import 'widgets/saved_accounts_section.dart';
 
 class ImportScreen extends ConsumerStatefulWidget {
   const ImportScreen({super.key});
@@ -44,6 +49,24 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     controller.updatePlayerId(normalizedPlayerId);
 
     final success = await controller.submit();
+    _goToDashboardIfReady(success);
+  }
+
+  Future<void> _loadDemoScenario(DemoPlayerScenario scenario) async {
+    final success = await ref
+        .read(playerImportControllerProvider.notifier)
+        .importDemoScenario(scenario);
+    _goToDashboardIfReady(success);
+  }
+
+  Future<void> _openSavedEntry(SavedAccountEntry entry) async {
+    final success = await ref
+        .read(playerImportControllerProvider.notifier)
+        .submitSavedAccount(entry);
+    _goToDashboardIfReady(success);
+  }
+
+  void _goToDashboardIfReady(bool success) {
     if (!mounted || !success) {
       return;
     }
@@ -59,23 +82,54 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(playerImportControllerProvider);
+    final demoScenarios = ref.watch(demoPlayerScenariosProvider);
+    final savedAccounts = ref.watch(recentSavedAccountsProvider);
+    final lastOpenedAccount = ref.watch(lastOpenedSavedAccountProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Import account')),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Padding(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: PlayerIdForm(
-                controller: _playerIdController,
-                isSubmitting: state.isSubmitting,
-                errorText: state.errorMessage,
-                onChanged: ref
-                    .read(playerImportControllerProvider.notifier)
-                    .updatePlayerId,
-                onSubmit: _submit,
+              child: SizedBox(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SavedAccountsSection(
+                      entries: savedAccounts,
+                      lastOpenedEntry: lastOpenedAccount,
+                      isSubmitting: state.isSubmitting,
+                      onContinueWithLast: _openSavedEntry,
+                      onOpen: _openSavedEntry,
+                      onTogglePinned: (entry) => ref
+                          .read(savedAccountsControllerProvider.notifier)
+                          .togglePinnedAccount(entry.accountId),
+                      onRemove: (entry) => ref
+                          .read(savedAccountsControllerProvider.notifier)
+                          .removeAccount(entry.accountId),
+                    ),
+                    if (savedAccounts.isNotEmpty) const SizedBox(height: 16),
+                    PlayerIdForm(
+                      controller: _playerIdController,
+                      isSubmitting: state.isSubmitting,
+                      errorText: state.errorMessage,
+                      onChanged: ref
+                          .read(playerImportControllerProvider.notifier)
+                          .updatePlayerId,
+                      onSubmit: _submit,
+                    ),
+                    const SizedBox(height: 16),
+                    DemoScenarioSection(
+                      scenarios: demoScenarios,
+                      isSubmitting: state.isSubmitting,
+                      onSelectScenario: _loadDemoScenario,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
