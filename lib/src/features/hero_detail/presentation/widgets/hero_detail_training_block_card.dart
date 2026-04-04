@@ -6,14 +6,23 @@ import '../../../../app/widgets/app_metric_tile.dart';
 import '../../../training_preferences/application/manual_hero_block_action_providers.dart';
 import '../../../training_preferences/domain/models/manual_hero_block_action.dart';
 
-class HeroDetailTrainingBlockCard extends ConsumerWidget {
+class HeroDetailTrainingBlockCard extends ConsumerStatefulWidget {
   const HeroDetailTrainingBlockCard({required this.heroId, super.key});
 
   final int heroId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final control = ref.watch(heroTrainingBlockControlProvider(heroId));
+  ConsumerState<HeroDetailTrainingBlockCard> createState() =>
+      _HeroDetailTrainingBlockCardState();
+}
+
+class _HeroDetailTrainingBlockCardState
+    extends ConsumerState<HeroDetailTrainingBlockCard> {
+  bool _isSaving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final control = ref.watch(heroTrainingBlockControlProvider(widget.heroId));
     if (control == null) {
       return const SizedBox.shrink();
     }
@@ -51,12 +60,16 @@ class HeroDetailTrainingBlockCard extends ConsumerWidget {
               runSpacing: 8,
               children: [
                 FilledButton.tonal(
-                  onPressed: () => _handlePrimaryAction(
-                    context: context,
-                    ref: ref,
-                    control: control,
+                  onPressed: _isSaving
+                      ? null
+                      : () => _handlePrimaryAction(
+                            context: context,
+                            ref: ref,
+                            control: control,
+                          ),
+                  child: Text(
+                    _isSaving ? 'Saving...' : control.primaryAction.label,
                   ),
-                  child: Text(control.primaryAction.label),
                 ),
               ],
             ),
@@ -71,24 +84,31 @@ class HeroDetailTrainingBlockCard extends ConsumerWidget {
     required WidgetRef ref,
     required HeroTrainingBlockControl control,
   }) async {
-    final controller = ref.read(heroTrainingBlockActionControllerProvider);
-    switch (control.primaryAction) {
-      case HeroTrainingBlockActionType.add:
-        await controller.addHeroToCurrentBlock(heroId);
-      case HeroTrainingBlockActionType.replace:
-        final replaceHeroId = await _ReplaceHeroDialog.show(
-          context,
-          options: control.replaceOptions,
-        );
-        if (replaceHeroId == null) {
-          return;
-        }
-        await controller.replaceHeroInCurrentBlock(
-          heroId: heroId,
-          replaceHeroId: replaceHeroId,
-        );
-      case HeroTrainingBlockActionType.remove:
-        await controller.removeHeroFromCurrentBlock(heroId);
+    setState(() => _isSaving = true);
+    try {
+      final controller = ref.read(heroTrainingBlockActionControllerProvider);
+      switch (control.primaryAction) {
+        case HeroTrainingBlockActionType.add:
+          await controller.addHeroToCurrentBlock(widget.heroId);
+        case HeroTrainingBlockActionType.replace:
+          final replaceHeroId = await _ReplaceHeroDialog.show(
+            context,
+            options: control.replaceOptions,
+          );
+          if (replaceHeroId == null || !context.mounted) {
+            return;
+          }
+          await controller.replaceHeroInCurrentBlock(
+            heroId: widget.heroId,
+            replaceHeroId: replaceHeroId,
+          );
+        case HeroTrainingBlockActionType.remove:
+          await controller.removeHeroFromCurrentBlock(widget.heroId);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 }

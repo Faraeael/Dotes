@@ -315,6 +315,215 @@ void main() {
       expect(review.overallOutcome, BlockReviewOutcome.offTrack);
     });
 
+    test(
+      'good adherence with flat target result yields mixed outcome, not on track',
+      () {
+        // Player stayed inside the hero block in all 5 games but win rate
+        // did not improve enough — outcome must be mixed, not on track.
+        final review = service.build(
+          previousCheckpoint: _checkpoint(
+            savedAt: DateTime.utc(2025, 3, 20, 10),
+            topInsightType: CoachingInsightType.comfortHeroDependence,
+            focusHeroBlock: const CoachingCheckpointHeroBlock(
+              heroIds: [28, 129],
+              heroLabels: ['Slardar', 'Mars'],
+              wins: 3,
+              losses: 2,
+            ),
+          ),
+          currentImport: _importedPlayer(
+            matches: [
+              _match(
+                matchId: 1,
+                startedAt: DateTime.utc(2025, 3, 20, 11),
+                heroId: 28,
+                didWin: true,
+              ),
+              _match(
+                matchId: 2,
+                startedAt: DateTime.utc(2025, 3, 20, 12),
+                heroId: 129,
+                didWin: false,
+              ),
+              _match(
+                matchId: 3,
+                startedAt: DateTime.utc(2025, 3, 20, 13),
+                heroId: 28,
+                didWin: true,
+              ),
+              _match(
+                matchId: 4,
+                startedAt: DateTime.utc(2025, 3, 20, 14),
+                heroId: 129,
+                didWin: false,
+              ),
+              _match(
+                matchId: 5,
+                startedAt: DateTime.utc(2025, 3, 20, 15),
+                heroId: 28,
+                didWin: true,
+              ),
+            ],
+          ),
+          sessionPlan: _sessionPlan(
+            targetType: SessionPlanTargetType.comfortBlock,
+            heroBlockHeroIds: const [28, 129],
+          ),
+          followThroughCheck: null,
+          progressCheck: null,
+        );
+
+        // All 5 games in block → stayedInsideBlock.
+        expect(review.adherence, BlockReviewAdherence.stayedInsideBlock);
+        // 3/5 = 0.60, previous block win rate = 3/5 = 0.60, delta < 0.10 → flat.
+        expect(review.targetResult, BlockReviewTargetResult.flat);
+        // Flat result with good adherence must be mixed, not on track.
+        expect(review.overallOutcome, BlockReviewOutcome.mixed);
+      },
+    );
+
+    test(
+      'good adherence with worse target result yields mixed outcome',
+      () {
+        // Player stayed inside the hero block but win rate dropped — still mixed.
+        final review = service.build(
+          previousCheckpoint: _checkpoint(
+            savedAt: DateTime.utc(2025, 3, 20, 10),
+            topInsightType: CoachingInsightType.comfortHeroDependence,
+            focusHeroBlock: const CoachingCheckpointHeroBlock(
+              heroIds: [28, 129],
+              heroLabels: ['Slardar', 'Mars'],
+              wins: 4,
+              losses: 1,
+            ),
+          ),
+          currentImport: _importedPlayer(
+            matches: [
+              _match(
+                matchId: 1,
+                startedAt: DateTime.utc(2025, 3, 20, 11),
+                heroId: 28,
+                didWin: false,
+              ),
+              _match(
+                matchId: 2,
+                startedAt: DateTime.utc(2025, 3, 20, 12),
+                heroId: 129,
+                didWin: false,
+              ),
+              _match(
+                matchId: 3,
+                startedAt: DateTime.utc(2025, 3, 20, 13),
+                heroId: 28,
+                didWin: false,
+              ),
+              _match(
+                matchId: 4,
+                startedAt: DateTime.utc(2025, 3, 20, 14),
+                heroId: 129,
+                didWin: false,
+              ),
+              _match(
+                matchId: 5,
+                startedAt: DateTime.utc(2025, 3, 20, 15),
+                heroId: 28,
+                didWin: true,
+              ),
+            ],
+          ),
+          sessionPlan: _sessionPlan(
+            targetType: SessionPlanTargetType.comfortBlock,
+            heroBlockHeroIds: const [28, 129],
+          ),
+          followThroughCheck: null,
+          progressCheck: null,
+        );
+
+        expect(review.adherence, BlockReviewAdherence.stayedInsideBlock);
+        // 1/5 = 0.20, previous block win rate = 4/5 = 0.80, delta = −0.60 → worse.
+        expect(review.targetResult, BlockReviewTargetResult.worse);
+        // Worse result even with good adherence is mixed.
+        expect(review.overallOutcome, BlockReviewOutcome.mixed);
+      },
+    );
+
+    test(
+      'poor adherence with improved target result yields mixed outcome, not on track',
+      () {
+        // Player drifted outside the block but deaths still fell — result is
+        // mixed because adherence was poor, not on track.
+        final review = service.build(
+          previousCheckpoint: _checkpoint(
+            savedAt: DateTime.utc(2025, 3, 20, 10),
+            topInsightType: CoachingInsightType.earlyDeathRisk,
+            averageDeaths: 8.0,
+          ),
+          currentImport: _importedPlayer(
+            matches: [
+              _match(
+                matchId: 1,
+                startedAt: DateTime.utc(2025, 3, 20, 11),
+                heroId: 53,
+                deaths: 4,
+                didWin: true,
+              ),
+              _match(
+                matchId: 2,
+                startedAt: DateTime.utc(2025, 3, 20, 12),
+                heroId: 54,
+                deaths: 4,
+                didWin: false,
+              ),
+              _match(
+                matchId: 3,
+                startedAt: DateTime.utc(2025, 3, 20, 13),
+                heroId: 55,
+                deaths: 4,
+                didWin: true,
+              ),
+              _match(
+                matchId: 4,
+                startedAt: DateTime.utc(2025, 3, 20, 14),
+                heroId: 56,
+                deaths: 4,
+                didWin: false,
+              ),
+              _match(
+                matchId: 5,
+                startedAt: DateTime.utc(2025, 3, 20, 15),
+                heroId: 57,
+                deaths: 4,
+                didWin: true,
+              ),
+            ],
+          ),
+          sessionPlan: _sessionPlan(
+            targetType: SessionPlanTargetType.deaths,
+            heroBlockHeroIds: const [28, 129],
+          ),
+          followThroughCheck: null,
+          progressCheck: const ProgressCheck.ready(
+            blockSize: 5,
+            comparisons: [
+              ProgressMetricComparison(
+                label: 'Deaths',
+                direction: ProgressDirection.down,
+                currentValueLabel: '4.0',
+                previousValueLabel: '8.0',
+              ),
+            ],
+          ),
+        );
+
+        // 0 of 5 games played hero 28 or 129 → offBlock.
+        expect(review.adherence, BlockReviewAdherence.offBlock);
+        // Deaths fell → improved.
+        expect(review.targetResult, BlockReviewTargetResult.improved);
+        // offBlock + improved → mixed (not on track, improvement without following the plan).
+        expect(review.overallOutcome, BlockReviewOutcome.mixed);
+      },
+    );
+
     test('manual hero block overrides the last saved block during review', () {
       final review = service.build(
         previousCheckpoint: _checkpoint(

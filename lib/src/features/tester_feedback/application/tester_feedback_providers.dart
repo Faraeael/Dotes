@@ -108,11 +108,15 @@ class TesterFeedbackController {
     TesterFeedback feedback, {
     String? playerLabel,
   }) async {
+    final sessionRevision = _sessionRevision;
     final stampedFeedback = feedback.copyWith(
       playerLabel: playerLabel,
       savedAt: _clock().toUtc(),
     );
     await _repository.saveForAccount(accountId, stampedFeedback);
+    if (_sessionRevision != sessionRevision) {
+      return;
+    }
     _ref.read(testerFeedbackCollectionRevisionProvider.notifier).state++;
     _ref.read(_loadedTesterFeedbackAccountIdProvider.notifier).state =
         accountId;

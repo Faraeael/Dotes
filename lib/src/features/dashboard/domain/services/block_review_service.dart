@@ -388,9 +388,9 @@ class BlockReviewService {
           : BlockReviewOutcome.mixed;
     }
 
-    return targetResult == BlockReviewTargetResult.worse
-        ? BlockReviewOutcome.mixed
-        : BlockReviewOutcome.onTrack;
+    return targetResult == BlockReviewTargetResult.improved
+        ? BlockReviewOutcome.onTrack
+        : BlockReviewOutcome.mixed;
   }
 
   ProgressMetricComparison? _comparisonFor(

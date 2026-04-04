@@ -60,6 +60,11 @@ class EndBlockSummaryService {
           : 'You drifted outside the planned block.';
     }
 
+    if (review.adherence == BlockReviewAdherence.stayedInsideBlock &&
+        review.targetResult == BlockReviewTargetResult.flat) {
+      return 'You followed the block cleanly, but there is no clear improvement yet.';
+    }
+
     if (review.overallOutcome == BlockReviewOutcome.mixed) {
       return 'The block finished, but the signal stayed mixed.';
     }
@@ -93,6 +98,11 @@ class EndBlockSummaryService {
     required CoachingCheckpoint checkpoint,
   }) {
     if (review.overallOutcome == BlockReviewOutcome.onTrack) {
+      return 'Run the same block again.';
+    }
+
+    if (review.adherence == BlockReviewAdherence.stayedInsideBlock &&
+        review.targetResult == BlockReviewTargetResult.flat) {
       return 'Run the same block again.';
     }
 

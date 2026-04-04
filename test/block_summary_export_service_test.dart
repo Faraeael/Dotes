@@ -48,7 +48,7 @@ void main() {
           'Player: Player (Account 86745912)',
           'Completed: Mar 20, 2025',
           'Outcome: On track',
-          'Main target: Improved',
+          'Target result: Improved',
           'Adherence: Stayed in block',
           'Takeaway: You stayed inside the block and deaths improved.',
           'Next step: Run the same block again.',

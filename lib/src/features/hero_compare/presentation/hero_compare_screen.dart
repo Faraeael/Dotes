@@ -104,7 +104,7 @@ class HeroCompareScreen extends ConsumerWidget {
           context,
           options: action.replaceOptions,
         );
-        if (replaceHeroId == null) {
+        if (replaceHeroId == null || !context.mounted) {
           return;
         }
         await controller.replaceHeroInCurrentBlock(

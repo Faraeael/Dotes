@@ -131,13 +131,13 @@ class DashboardScreen extends ConsumerWidget {
       await PlaytestSummaryDialog.show(context);
     }
 
-    if (importedPlayer == null) {
+    if (importedPlayer == null || sampleRoleSummary == null) {
       return DashboardEmptyView(onGoToImport: goToImport);
     }
 
     final sampleSummary = ImportedSampleSummary.fromImportedPlayer(
       importedPlayer,
-      sampleRoleSummary!,
+      sampleRoleSummary,
     );
 
     return DashboardLoadedView(

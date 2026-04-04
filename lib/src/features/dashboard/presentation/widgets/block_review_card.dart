@@ -22,7 +22,7 @@ class BlockReviewCard extends StatelessWidget {
             AppCardHeader(
               title: 'Block review',
               subtitle:
-                  'Check whether the last block stayed clean enough to trust and moved in the right direction.',
+                  'Whether you followed the plan, and whether the coaching target moved.',
               trailing: AppStatusBadge(
                 label: review.overallOutcome.label,
                 tone: _toneForOutcome(review.overallOutcome),
@@ -34,11 +34,11 @@ class BlockReviewCard extends StatelessWidget {
                 AppMetricTile(label: 'Block', value: review.blockStatus.label),
                 AppMetricTile(label: 'Games', value: review.gamesLoggedLabel),
                 AppMetricTile(
-                  label: 'Discipline',
+                  label: 'Adherence',
                   value: review.adherence.label,
                 ),
                 AppMetricTile(
-                  label: 'Target',
+                  label: 'Target result',
                   value: review.targetResult.label,
                 ),
               ],

@@ -103,6 +103,102 @@ void main() {
       expect(summary, isNull);
     });
 
+    test(
+      'good adherence with flat result: takeaway explains no improvement and next step keeps the block',
+      () {
+        final summary = service.build(
+          activeStartedCheckpoint: _startedCheckpoint(
+            targetType: SessionPlanTargetType.deaths,
+            heroBlockIds: const [28, 129],
+          ),
+          reviewedBlock: const BlockReview(
+            blockStatus: BlockReviewStatus.completed,
+            gamesLogged: 5,
+            blockSize: 5,
+            adherence: BlockReviewAdherence.stayedInsideBlock,
+            targetResult: BlockReviewTargetResult.flat,
+            overallOutcome: BlockReviewOutcome.mixed,
+          ),
+          sessionPlan: _sessionPlan(targetType: SessionPlanTargetType.deaths),
+          followThrough: null,
+        );
+
+        expect(summary, isNotNull);
+        expect(summary!.outcome, BlockReviewOutcome.mixed);
+        expect(summary.adherenceResult, 'Stayed in block');
+        expect(summary.mainTargetResult, 'Flat');
+        expect(
+          summary.takeaway,
+          'You followed the block cleanly, but there is no clear improvement yet.',
+        );
+        // Player followed the plan so the right advice is to keep going.
+        expect(summary.nextStepSuggestion, 'Run the same block again.');
+      },
+    );
+
+    test(
+      'good adherence with flat result: takeaway does not contain the word "improved"',
+      () {
+        final summary = service.build(
+          activeStartedCheckpoint: _startedCheckpoint(
+            targetType: SessionPlanTargetType.heroPool,
+          ),
+          reviewedBlock: const BlockReview(
+            blockStatus: BlockReviewStatus.completed,
+            gamesLogged: 5,
+            blockSize: 5,
+            adherence: BlockReviewAdherence.stayedInsideBlock,
+            targetResult: BlockReviewTargetResult.flat,
+            overallOutcome: BlockReviewOutcome.mixed,
+          ),
+          sessionPlan: _sessionPlan(targetType: SessionPlanTargetType.heroPool),
+          followThrough: null,
+        );
+
+        expect(summary, isNotNull);
+        expect(
+          summary!.takeaway.toLowerCase(),
+          isNot(contains('improved')),
+          reason: 'should not claim improvement when target result is flat',
+        );
+      },
+    );
+
+    test(
+      'poor adherence with improved result: takeaway reflects drift, not improvement',
+      () {
+        final summary = service.build(
+          activeStartedCheckpoint: _startedCheckpoint(
+            targetType: SessionPlanTargetType.deaths,
+            heroBlockIds: const [28, 129],
+          ),
+          reviewedBlock: const BlockReview(
+            blockStatus: BlockReviewStatus.completed,
+            gamesLogged: 5,
+            blockSize: 5,
+            adherence: BlockReviewAdherence.offBlock,
+            targetResult: BlockReviewTargetResult.improved,
+            overallOutcome: BlockReviewOutcome.mixed,
+          ),
+          sessionPlan: _sessionPlan(targetType: SessionPlanTargetType.deaths),
+          followThrough: null,
+        );
+
+        expect(summary, isNotNull);
+        // Drift wording takes priority over the improved metric result.
+        expect(
+          summary!.takeaway,
+          'You drifted outside the planned hero block.',
+        );
+        expect(
+          summary.takeaway.toLowerCase(),
+          isNot(contains('improved')),
+          reason:
+              'should not claim improvement when adherence was off block',
+        );
+      },
+    );
+
     test('next-step suggestion mapping is deterministic', () {
       final started = _startedCheckpoint(
         targetType: SessionPlanTargetType.heroPool,

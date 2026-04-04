@@ -39,7 +39,7 @@ class EndBlockSummaryCard extends StatelessWidget {
               children: [
                 AppMetricTile(label: 'Outcome', value: summary.outcome.label),
                 AppMetricTile(
-                  label: 'Main target',
+                  label: 'Target result',
                   value: summary.mainTargetResult,
                 ),
                 AppMetricTile(

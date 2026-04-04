@@ -123,7 +123,11 @@ class TrainingPreferencesController {
     int accountId,
     TrainingPreferences preferences,
   ) async {
+    final sessionRevision = _sessionRevision;
     await _repository.saveForAccount(accountId, preferences);
+    if (_sessionRevision != sessionRevision) {
+      return;
+    }
     _ref.read(_loadedTrainingPreferencesAccountIdProvider.notifier).state =
         accountId;
     _ref.read(_loadedTrainingPreferencesStateProvider.notifier).state =

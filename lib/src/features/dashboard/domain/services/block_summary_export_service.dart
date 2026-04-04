@@ -97,7 +97,7 @@ class BlockSummaryExportService {
       'Player: $playerLabel',
       'Completed: $completionDateLabel',
       'Outcome: $outcome',
-      'Main target: $mainTargetResult',
+      'Target result: $mainTargetResult',
       'Adherence: $adherenceResult',
       'Takeaway: $takeaway',
       'Next step: $nextStep',

@@ -6,7 +6,7 @@ import '../../../../app/widgets/app_status_badge.dart';
 import '../../domain/models/hero_compare_block_actions.dart';
 import '../../../hero_detail/domain/models/hero_detail.dart';
 
-class HeroCompareHeroCard extends StatelessWidget {
+class HeroCompareHeroCard extends StatefulWidget {
   const HeroCompareHeroCard({
     required this.detail,
     required this.blockAction,
@@ -19,6 +19,24 @@ class HeroCompareHeroCard extends StatelessWidget {
   final Future<void> Function() onUseHero;
 
   @override
+  State<HeroCompareHeroCard> createState() => _HeroCompareHeroCardState();
+}
+
+class _HeroCompareHeroCardState extends State<HeroCompareHeroCard> {
+  bool _isSaving = false;
+
+  Future<void> _handlePressed() async {
+    setState(() => _isSaving = true);
+    try {
+      await widget.onUseHero();
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
@@ -26,21 +44,33 @@ class HeroCompareHeroCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(detail.heroName, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              widget.detail.heroName,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 12),
             AppMetricGrid(
               children: [
-                AppMetricTile(label: 'Matches', value: '${detail.matchesInSample}'),
-                AppMetricTile(label: 'Wins', value: '${detail.wins}'),
-                AppMetricTile(label: 'Losses', value: '${detail.losses}'),
-                AppMetricTile(label: 'Win rate', value: '${detail.winRatePercentage}%'),
+                AppMetricTile(
+                  label: 'Matches',
+                  value: '${widget.detail.matchesInSample}',
+                ),
+                AppMetricTile(label: 'Wins', value: '${widget.detail.wins}'),
+                AppMetricTile(
+                  label: 'Losses',
+                  value: '${widget.detail.losses}',
+                ),
+                AppMetricTile(
+                  label: 'Win rate',
+                  value: '${widget.detail.winRatePercentage}%',
+                ),
                 AppMetricTile(
                   label: 'Average deaths',
-                  value: detail.averageDeaths?.toStringAsFixed(1) ?? '-',
+                  value: widget.detail.averageDeaths?.toStringAsFixed(1) ?? '-',
                 ),
                 AppMetricTile(
                   label: 'Meta',
-                  value: detail.metaSummary.reference?.tier.label ??
+                  value: widget.detail.metaSummary.reference?.tier.label ??
                       'No meta reference',
                 ),
               ],
@@ -51,32 +81,33 @@ class HeroCompareHeroCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 _statusBadge(
-                  label: detail.tags.contains(HeroDetailTag.comfortCore)
+                  label: widget.detail.tags.contains(HeroDetailTag.comfortCore)
                       ? 'Comfort core'
                       : 'Outside comfort core',
-                  tone: detail.tags.contains(HeroDetailTag.comfortCore)
+                  tone: widget.detail.tags.contains(HeroDetailTag.comfortCore)
                       ? AppStatusTone.info
                       : AppStatusTone.neutral,
                 ),
                 _statusBadge(
-                  label: detail.tags.contains(HeroDetailTag.inCurrentPlan)
+                  label: widget.detail.tags
+                          .contains(HeroDetailTag.inCurrentPlan)
                       ? 'In current plan'
                       : 'Outside current plan',
-                  tone: detail.tags.contains(HeroDetailTag.inCurrentPlan)
+                  tone: widget.detail.tags.contains(HeroDetailTag.inCurrentPlan)
                       ? AppStatusTone.positive
                       : AppStatusTone.warning,
                 ),
-                if (blockAction.isAlreadyInBlock)
+                if (widget.blockAction.isAlreadyInBlock)
                   _statusBadge(
                     label: 'Already in block',
                     tone: AppStatusTone.positive,
                   ),
               ],
             ),
-            if (detail.blockContext != null) ...[
+            if (widget.detail.blockContext != null) ...[
               const SizedBox(height: 12),
               Text(
-                'Block context: ${detail.blockContext!.lastPlanStatus.label}. ${detail.blockContext!.trendStatus.label}.',
+                'Block context: ${widget.detail.blockContext!.lastPlanStatus.label}. ${widget.detail.blockContext!.trendStatus.label}.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -84,8 +115,12 @@ class HeroCompareHeroCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton.tonal(
-                onPressed: onUseHero,
-                child: Text(blockAction.actionLabel),
+                onPressed: _isSaving ? null : _handlePressed,
+                child: Text(
+                  _isSaving
+                      ? 'Saving...'
+                      : widget.blockAction.actionLabel,
+                ),
               ),
             ),
           ],
