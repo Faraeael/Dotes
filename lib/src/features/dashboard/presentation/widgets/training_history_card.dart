@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../app/widgets/app_card_header.dart';
+import '../../../../app/widgets/app_metric_tile.dart';
 import '../../../../app/widgets/app_status_badge.dart';
 import '../../../checkpoints/domain/models/checkpoint_save_status_summary.dart';
 import '../../domain/models/training_history.dart';
@@ -125,6 +126,27 @@ class _TrainingHistoryRow extends StatelessWidget {
         Text(entry.focusLabel, style: theme.textTheme.titleMedium),
         const SizedBox(height: 4),
         Text(entry.resultSummary, style: theme.textTheme.bodyMedium),
+        if (entry.deathsAverage != null || entry.winRatePercent != null) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              if (entry.deathsAverage != null)
+                AppMetricTile(
+                  label: 'Deaths avg',
+                  value: entry.deathsAverage!.toStringAsFixed(1),
+                  minWidth: 100,
+                ),
+              if (entry.winRatePercent != null)
+                AppMetricTile(
+                  label: 'Win rate',
+                  value: '${entry.winRatePercent!.toStringAsFixed(0)}%',
+                  minWidth: 100,
+                ),
+            ],
+          ),
+        ],
       ],
     );
   }

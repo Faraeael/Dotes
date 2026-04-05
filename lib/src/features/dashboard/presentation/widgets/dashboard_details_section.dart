@@ -75,6 +75,8 @@ class DashboardDetailsSection extends StatelessWidget {
           roleReasonLabel: sampleSummary.roleReasonLabel,
           roleMixDetailsLabel: sampleSummary.roleMixDetailsLabel,
           roleReadLabel: sampleSummary.roleReadLabel,
+          primaryRoleAdherenceLabel: sampleSummary.primaryRoleAdherenceLabel,
+          topHeroes: sampleSummary.topHeroes,
         ),
         if (progressCheck != null)
           ProgressCheckCard(

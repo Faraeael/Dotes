@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/widgets/app_card_header.dart';
 import '../../../../app/widgets/app_metric_grid.dart';
 import '../../../../app/widgets/app_metric_tile.dart';
+import '../utils/imported_sample_summary.dart';
 
 class ImportedSampleCard extends StatelessWidget {
   const ImportedSampleCard({
@@ -16,6 +17,8 @@ class ImportedSampleCard extends StatelessWidget {
     required this.roleReasonLabel,
     required this.roleMixDetailsLabel,
     required this.roleReadLabel,
+    required this.primaryRoleAdherenceLabel,
+    required this.topHeroes,
     super.key,
   });
 
@@ -29,6 +32,8 @@ class ImportedSampleCard extends StatelessWidget {
   final String roleReasonLabel;
   final String? roleMixDetailsLabel;
   final String roleReadLabel;
+  final String? primaryRoleAdherenceLabel;
+  final List<HeroWinRateStat> topHeroes;
 
   @override
   Widget build(BuildContext context) {
@@ -59,8 +64,30 @@ class ImportedSampleCard extends StatelessWidget {
                     value: mostPlayedHeroLabel!,
                   ),
                 AppMetricTile(label: 'Likely role', value: primaryRoleLabel),
+                if (primaryRoleAdherenceLabel != null)
+                  AppMetricTile(
+                    label: 'Role %',
+                    value: primaryRoleAdherenceLabel!,
+                  ),
               ],
             ),
+            if (topHeroes.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Top heroes',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 4),
+              AppMetricGrid(
+                children: [
+                  for (final hero in topHeroes)
+                    AppMetricTile(
+                      label: hero.heroName,
+                      value: '${hero.winRatePercent}% · ${hero.games}g',
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             Text(
               'Role confidence: $roleReadLabel',

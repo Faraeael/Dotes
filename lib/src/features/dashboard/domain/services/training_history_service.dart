@@ -48,6 +48,9 @@ class TrainingHistoryService {
       currentSample: currentCheckpoint.sample,
     );
 
+    final sample = currentCheckpoint.sample;
+    final hasEnoughMatches = sample.matchesAnalyzed >= 5;
+
     return TrainingHistoryEntry(
       savedAt: previousCheckpoint.savedAt,
       focusLabel:
@@ -59,6 +62,8 @@ class TrainingHistoryService {
         currentCheckpoint: currentCheckpoint,
         followThroughCheck: followThroughCheck,
       ),
+      deathsAverage: hasEnoughMatches ? sample.averageDeaths : null,
+      winRatePercent: hasEnoughMatches ? sample.winRate * 100 : null,
     );
   }
 

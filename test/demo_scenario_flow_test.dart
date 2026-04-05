@@ -55,7 +55,7 @@ void main() {
     testWidgets('can switch back from a demo scenario to the real import flow', (
       tester,
     ) async {
-      await tester.binding.setSurfaceSize(const Size(900, 2200));
+      await tester.binding.setSurfaceSize(const Size(900, 2600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(_app());
       await tester.pumpAndSettle();

@@ -26,10 +26,14 @@ class TrainingHistoryEntry {
     required this.focusLabel,
     required this.outcome,
     required this.resultSummary,
+    this.deathsAverage,
+    this.winRatePercent,
   });
 
   final DateTime savedAt;
   final String focusLabel;
   final TrainingCycleOutcome outcome;
   final String resultSummary;
+  final double? deathsAverage;
+  final double? winRatePercent;
 }

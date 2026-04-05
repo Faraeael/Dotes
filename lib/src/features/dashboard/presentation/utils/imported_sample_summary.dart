@@ -2,6 +2,18 @@ import '../../../matches/presentation/utils/hero_labels.dart';
 import '../../../player_import/domain/models/imported_player_data.dart';
 import '../../../roles/domain/models/sample_role_summary.dart';
 
+class HeroWinRateStat {
+  const HeroWinRateStat({
+    required this.heroName,
+    required this.games,
+    required this.winRatePercent,
+  });
+
+  final String heroName;
+  final int games;
+  final int winRatePercent;
+}
+
 class ImportedSampleSummary {
   const ImportedSampleSummary({
     required this.matchesAnalyzed,
@@ -14,6 +26,8 @@ class ImportedSampleSummary {
     required this.roleReasonLabel,
     required this.roleMixDetailsLabel,
     required this.roleReadLabel,
+    required this.primaryRoleAdherenceLabel,
+    required this.topHeroes,
   });
 
   final int matchesAnalyzed;
@@ -26,6 +40,8 @@ class ImportedSampleSummary {
   final String roleReasonLabel;
   final String? roleMixDetailsLabel;
   final String roleReadLabel;
+  final String? primaryRoleAdherenceLabel;
+  final List<HeroWinRateStat> topHeroes;
 
   factory ImportedSampleSummary.fromImportedPlayer(
     ImportedPlayerData importedPlayer,
@@ -61,6 +77,42 @@ class ImportedSampleSummary {
       },
     );
 
+    // Compute per-hero win rates for top heroes section.
+    final heroWins = <int, int>{};
+    for (final match in matches) {
+      heroWins.update(
+        match.heroId,
+        (w) => w + (match.didWin ? 1 : 0),
+        ifAbsent: () => match.didWin ? 1 : 0,
+      );
+    }
+    final qualifyingHeroes = heroUsage.entries
+        .where((e) => e.value >= 3)
+        .toList()
+      ..sort((a, b) {
+        final byGames = b.value.compareTo(a.value);
+        if (byGames != 0) return byGames;
+        return a.key.compareTo(b.key);
+      });
+    final topHeroes = qualifyingHeroes.length < 2
+        ? const <HeroWinRateStat>[]
+        : qualifyingHeroes.take(3).map((e) {
+            final games = e.value;
+            final w = heroWins[e.key] ?? 0;
+            return HeroWinRateStat(
+              heroName: heroDisplayName(e.key),
+              games: games,
+              winRatePercent: (w / games * 100).round(),
+            );
+          }).toList();
+
+    // Compute role adherence label (null when read is unreliable).
+    final primaryRoleAdherenceLabel =
+        roleSummary.readType != SampleRoleReadType.smallSample &&
+                roleSummary.readType != SampleRoleReadType.unclearSignals
+            ? '${(roleSummary.primaryRoleShare * 100).toStringAsFixed(0)}%'
+            : null;
+
     return ImportedSampleSummary(
       matchesAnalyzed: matches.length,
       wins: wins,
@@ -74,6 +126,8 @@ class ImportedSampleSummary {
       roleReasonLabel: roleSummary.reasonLabel,
       roleMixDetailsLabel: roleSummary.roleMixDetailsLabel,
       roleReadLabel: roleSummary.estimateStrengthLabel,
+      primaryRoleAdherenceLabel: primaryRoleAdherenceLabel,
+      topHeroes: topHeroes,
     );
   }
 }

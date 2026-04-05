@@ -98,6 +98,60 @@ void main() {
       );
     });
 
+    test('populates deathsAverage and winRatePercent when matchesAnalyzed >= 5',
+        () {
+      final history = service.build([
+        _checkpoint(
+          savedAt: DateTime.utc(2025, 3, 20),
+          focusSourceLabel: 'Early death risk',
+          topInsightType: CoachingInsightType.earlyDeathRisk,
+          averageDeaths: 7.2,
+          matchesAnalyzed: 10,
+          wins: 6,
+        ),
+        _checkpoint(
+          savedAt: DateTime.utc(2025, 3, 21),
+          focusSourceLabel: 'Early death risk',
+          topInsightType: CoachingInsightType.earlyDeathRisk,
+          averageDeaths: 5.8,
+          matchesAnalyzed: 10,
+          wins: 7,
+        ),
+      ]);
+
+      expect(history.entries, hasLength(1));
+      expect(history.entries.first.deathsAverage, closeTo(5.8, 0.001));
+      expect(history.entries.first.winRatePercent, closeTo(70.0, 0.001));
+    });
+
+    test('deathsAverage and winRatePercent are null when matchesAnalyzed < 5',
+        () {
+      final history = service.build([
+        _checkpoint(
+          savedAt: DateTime.utc(2025, 3, 20),
+          focusSourceLabel: 'Limited confidence',
+          topInsightType: CoachingInsightType.limitedConfidence,
+          matchesAnalyzed: 4,
+          wins: 2,
+          losses: 2,
+          averageDeaths: 6.0,
+        ),
+        _checkpoint(
+          savedAt: DateTime.utc(2025, 3, 21),
+          focusSourceLabel: 'Limited confidence',
+          topInsightType: CoachingInsightType.limitedConfidence,
+          matchesAnalyzed: 4,
+          wins: 3,
+          losses: 1,
+          averageDeaths: 5.0,
+        ),
+      ]);
+
+      expect(history.entries, hasLength(1));
+      expect(history.entries.first.deathsAverage, isNull);
+      expect(history.entries.first.winRatePercent, isNull);
+    });
+
     test('keeps output deterministic for the same checkpoint list', () {
       final checkpoints = [
         _checkpoint(

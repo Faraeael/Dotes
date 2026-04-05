@@ -295,6 +295,8 @@ void main() {
             roleReasonLabel: 'Need more games for a stable read.',
             roleMixDetailsLabel: null,
             roleReadLabel: 'Low-confidence estimate',
+            primaryRoleAdherenceLabel: null,
+            topHeroes: [],
           ),
           trainingHistory: const TrainingHistory(
             entries: [],
@@ -634,6 +636,8 @@ ImportedSampleSummary _sampleSummary() {
     roleReasonLabel: 'Recent matches lean toward one core role.',
     roleMixDetailsLabel: null,
     roleReadLabel: 'Strong estimate',
+    primaryRoleAdherenceLabel: null,
+    topHeroes: [],
   );
 }
 
