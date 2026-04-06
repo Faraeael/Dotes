@@ -6,7 +6,7 @@ import '../utils/hero_labels.dart';
 import '../utils/match_formatters.dart';
 import 'match_info_chip.dart';
 
-class MatchesOverviewCard extends StatelessWidget {
+class MatchesOverviewCard extends StatefulWidget {
   const MatchesOverviewCard({
     required this.recentMatches,
     required this.onSelectHero,
@@ -17,8 +17,20 @@ class MatchesOverviewCard extends StatelessWidget {
   final ValueChanged<int> onSelectHero;
 
   @override
+  State<MatchesOverviewCard> createState() => _MatchesOverviewCardState();
+}
+
+class _MatchesOverviewCardState extends State<MatchesOverviewCard> {
+  static const _collapsedMatchCount = 5;
+  bool _showAllMatches = false;
+
+  @override
   Widget build(BuildContext context) {
-    final visibleMatches = recentMatches.take(5).toList(growable: false);
+    final visibleMatches = _showAllMatches
+        ? widget.recentMatches
+        : widget.recentMatches.take(_collapsedMatchCount).toList(
+            growable: false,
+          );
 
     if (visibleMatches.isEmpty) {
       return const SectionCard(
@@ -41,9 +53,21 @@ class MatchesOverviewCard extends StatelessWidget {
             for (var index = 0; index < visibleMatches.length; index++) ...[
               _MatchRow(
                 match: visibleMatches[index],
-                onTap: () => onSelectHero(visibleMatches[index].heroId),
+                onTap: () => widget.onSelectHero(visibleMatches[index].heroId),
               ),
               if (index < visibleMatches.length - 1) const Divider(height: 24),
+            ],
+            if (widget.recentMatches.length > _collapsedMatchCount) ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () {
+                    setState(() => _showAllMatches = !_showAllMatches);
+                  },
+                  child: Text(_showAllMatches ? 'See less' : 'See more'),
+                ),
+              ),
             ],
           ],
         ),

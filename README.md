@@ -27,6 +27,7 @@ The current app supports:
 - Loading local demo scenarios for testing the coaching loop.
 - Reading a coaching verdict from recent matches.
 - Building a focused 5-game session plan.
+- Browsing the recent matches card in a compact view with a `See more` toggle for older games.
 - Starting or restarting a training block.
 - Re-importing later to review the finished block.
 - Exporting a compact end-of-block summary.
@@ -118,3 +119,4 @@ The repo follows a feature-first structure:
 - [MVP Playtest Script](docs/mvp_playtest_script.md)
 - [QA Regression Checklist](docs/qa_regression_checklist.md)
 - [CLAUDE Guide](CLAUDE.md)
+

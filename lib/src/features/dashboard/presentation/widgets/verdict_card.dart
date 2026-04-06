@@ -72,6 +72,16 @@ class VerdictCard extends StatelessWidget {
                   borderColor: tokens.positive.withAlpha(110),
                 ),
             ],
+            if (verdict.contextNote != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                verdict.contextNote!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
           ],
         ),
       ),

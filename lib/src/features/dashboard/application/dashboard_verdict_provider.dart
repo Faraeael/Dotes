@@ -26,5 +26,7 @@ final dashboardVerdictProvider = Provider<DashboardVerdict?>((ref) {
     progressCheck: ref.watch(progressCheckProvider),
     followThroughCheck: ref.watch(focusFollowThroughProvider),
     previousCheckpoint: ref.watch(previousCoachingCheckpointProvider),
+    rankTier: importedPlayer.profile.coachingRankTier,
   );
 });
+

@@ -1,6 +1,7 @@
 import '../../../checkpoints/domain/models/coaching_checkpoint.dart';
 import '../../../insights/domain/models/coaching_insight.dart';
 import '../../../insights/domain/models/next_games_focus.dart';
+import '../../../player_import/domain/models/player_profile_summary.dart';
 import '../../../progress/domain/models/focus_follow_through_check.dart';
 import '../../../progress/domain/models/progress_check.dart';
 import '../models/comfort_core_summary.dart';
@@ -16,6 +17,7 @@ class DashboardVerdictService {
     required ProgressCheck? progressCheck,
     required FocusFollowThroughCheck? followThroughCheck,
     required CoachingCheckpoint? previousCheckpoint,
+    CoachingRankTier rankTier = CoachingRankTier.standard,
   }) {
     final leakCandidates = <_VerdictCandidate>[
       ..._followThroughLeakCandidates(followThroughCheck, previousCheckpoint),
@@ -43,6 +45,8 @@ class DashboardVerdictService {
       progressCheck: progressCheck,
     );
 
+    final hasSignal = biggestLeak != null || biggestEdge != null;
+
     return DashboardVerdict(
       biggestLeak: biggestLeak == null
           ? null
@@ -50,12 +54,24 @@ class DashboardVerdictService {
       biggestEdge: biggestEdge == null
           ? null
           : DashboardVerdictLine(message: biggestEdge.message),
-      fallbackMessage: biggestLeak == null && biggestEdge == null
+      fallbackMessage: !hasSignal
           ? 'Current sample is still too noisy for a strong verdict.'
           : null,
       confidenceLabel: confidenceLabel,
       reasonLabel: reasonLabel,
+      contextNote: hasSignal ? _contextNote(rankTier) : null,
     );
+  }
+
+  /// Returns a rank-tier-aware coaching note, or null for [standard] tier.
+  String? _contextNote(CoachingRankTier rankTier) {
+    return switch (rankTier) {
+      CoachingRankTier.introductory =>
+        'At your rank, hero pool discipline is the fastest lever for climbing.',
+      CoachingRankTier.advanced =>
+        'At Divine+, death efficiency tends to be the primary differentiator at this ceiling.',
+      CoachingRankTier.standard => null,
+    };
   }
 
   String _confidenceLabel({

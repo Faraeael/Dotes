@@ -27,6 +27,7 @@ Once your account loads, the dashboard gives you the main coaching surfaces:
 - `Next 5 games focus`: the simplest coaching recommendation right now
 - `Session plan`: the block you should follow next
 - `Training setup`: whether you are using app read or manual preferences
+- `Recent matches`: a compact recent-games list with `See more` when you want extra match context
 
 This is the point where you decide what your next 5-game block should be.
 
@@ -110,3 +111,4 @@ Right now, Dotes is not:
 - a cloud-synced coaching platform
 
 It is a local-first coaching loop for short, reviewable Dota practice blocks.
+

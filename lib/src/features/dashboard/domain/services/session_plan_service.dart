@@ -19,6 +19,7 @@ class SessionPlanService {
     required FocusFollowThroughCheck? followThroughCheck,
     String Function(int heroId)? heroLabelFor,
     TrainingPreferences trainingPreferences = const TrainingPreferences(),
+    int blockSize = 5,
   }) {
     final preferredRole = trainingPreferences.activePreferredRole;
     final isNoisySample = _isNoisySample(
@@ -62,11 +63,11 @@ class SessionPlanService {
 
     return SessionPlan(
       queue: _queueLabel(
-      roleSummary,
-      isNoisySample: isNoisySample,
-      preferredRole: preferredRole,
-      queuePreference: trainingPreferences.queuePreference,
-    ),
+        roleSummary,
+        isNoisySample: isNoisySample,
+        preferredRole: preferredRole,
+        queuePreference: trainingPreferences.queuePreference,
+      ),
       heroBlock: _heroBlockLabel(
         namedHeroBlock: namedHeroBlock,
         nextGamesFocus: nextGamesFocus,
@@ -83,7 +84,7 @@ class SessionPlanService {
         focusPriority: focusPriority,
         coachingStyle: coachingStyle,
       ),
-      reviewWindow: 'next 5 games',
+      reviewWindow: 'next $blockSize games',
       targetType: targetType,
       heroBlockHeroIds: namedHeroBlockIds,
       roleBlockKey: roleBlockKey,

@@ -166,7 +166,7 @@ DemoPlayerScenario _completedOnTrackBlockScenario() {
     checkpointHistory: [
       _historicalCheckpoint(
         accountId: accountId,
-        savedAt: DateTime.utc(2026, 2, 20),
+        savedAt: _computeRelativeStartedAt(2026, 2, 20),
         averageDeaths: 7.4,
         uniqueHeroesPlayed: 4,
         recentWindow: const [
@@ -179,7 +179,7 @@ DemoPlayerScenario _completedOnTrackBlockScenario() {
       ),
       _historicalCheckpoint(
         accountId: accountId,
-        savedAt: DateTime.utc(2026, 3, 26, 12),
+        savedAt: _computeRelativeStartedAt(2026, 3, 26),
         focusAction: 'Play the next 5 games on Slardar + Mars and keep deaths to 6 or fewer.',
         focusSourceLabel: 'Early death risk',
         topInsightType: CoachingInsightType.earlyDeathRisk,
@@ -259,7 +259,7 @@ DemoPlayerScenario _completedOffTrackBlockScenario() {
     checkpointHistory: [
       _historicalCheckpoint(
         accountId: accountId,
-        savedAt: DateTime.utc(2026, 2, 22),
+        savedAt: _computeRelativeStartedAt(2026, 2, 22),
         averageDeaths: 6.9,
         uniqueHeroesPlayed: 4,
         recentWindow: const [
@@ -272,7 +272,7 @@ DemoPlayerScenario _completedOffTrackBlockScenario() {
       ),
       _historicalCheckpoint(
         accountId: accountId,
-        savedAt: DateTime.utc(2026, 3, 26, 12),
+        savedAt: _computeRelativeStartedAt(2026, 3, 26),
         focusAction: 'Stay on Slardar + Mars for five games and keep the block easy to review.',
         focusSourceLabel: 'Comfort hero dependence',
         topInsightType: CoachingInsightType.comfortHeroDependence,
@@ -557,7 +557,7 @@ RecentMatch _match(
   return RecentMatch(
     matchId: matchId,
     heroId: heroId,
-    startedAt: DateTime.utc(year, month, day, 12),
+    startedAt: _computeRelativeStartedAt(year, month, day),
     duration: const Duration(minutes: 35),
     kills: kills,
     deaths: deaths,
@@ -573,4 +573,11 @@ RecentMatch _match(
   );
 }
 
-final _savedAtMar31 = DateTime.utc(2026, 3, 31, 12);
+DateTime _computeRelativeStartedAt(int year, int month, int day) {
+  final original = DateTime.utc(year, month, day, 12);
+  final baseline = DateTime.utc(2026, 3, 31, 12);
+  final diff = baseline.difference(original);
+  return DateTime.now().subtract(diff);
+}
+
+final _savedAtMar31 = DateTime.now();

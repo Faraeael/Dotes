@@ -21,7 +21,7 @@ class PlayerSummaryCard extends StatelessWidget {
         'Source: Demo scenario (${source.scenarioLabel ?? 'Local seed'})',
       if (source.isDemo) 'This is local test data, not a real imported account.',
       'Account ID: ${profile.accountId}',
-      if (profile.rankTier != null) 'Rank tier: ${profile.rankTier}',
+      if (profile.rankLabel != null) 'Rank: ${profile.rankLabel}',
       if (profile.leaderboardRank != null)
         'Leaderboard rank: #${profile.leaderboardRank}',
       if (profile.realName case final realName?) 'Steam name: $realName',
@@ -38,3 +38,4 @@ class PlayerSummaryCard extends StatelessWidget {
     );
   }
 }
+

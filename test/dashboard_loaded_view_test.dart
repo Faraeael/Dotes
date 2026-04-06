@@ -23,6 +23,31 @@ import 'package:dotes/src/features/insights/domain/models/next_games_focus.dart'
 import 'package:dotes/src/features/matches/presentation/widgets/matches_overview_card.dart';
 import 'package:dotes/src/features/player_import/domain/models/imported_player_data.dart';
 import 'package:dotes/src/features/player_import/domain/models/player_profile_summary.dart';
+import 'package:dotes/src/features/checkpoints/domain/models/checkpoint_save_status_summary.dart';
+import 'package:dotes/src/features/checkpoints/domain/models/training_block_action.dart';
+import 'package:dotes/src/features/dashboard/domain/models/block_review.dart';
+import 'package:dotes/src/features/dashboard/domain/models/comfort_core_summary.dart';
+import 'package:dotes/src/features/dashboard/domain/models/dashboard_verdict.dart';
+import 'package:dotes/src/features/dashboard/domain/models/dashboard_onboarding_guide.dart';
+import 'package:dotes/src/features/dashboard/domain/models/end_block_summary.dart';
+import 'package:dotes/src/features/dashboard/domain/models/saved_block_summary.dart';
+import 'package:dotes/src/features/dashboard/domain/models/session_plan.dart';
+import 'package:dotes/src/features/dashboard/domain/models/training_history.dart';
+import 'package:dotes/src/features/dashboard/presentation/utils/imported_sample_summary.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/block_review_card.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/comfort_core_card.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/imported_sample_card.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/saved_block_summaries_card.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/dashboard_loaded_view.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/end_block_summary_card.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/session_plan_card.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/training_history_card.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/verdict_card.dart';
+import 'package:dotes/src/features/insights/domain/models/coaching_insight.dart';
+import 'package:dotes/src/features/insights/domain/models/next_games_focus.dart';
+import 'package:dotes/src/features/matches/presentation/widgets/matches_overview_card.dart';
+import 'package:dotes/src/features/player_import/domain/models/imported_player_data.dart';
+import 'package:dotes/src/features/player_import/domain/models/player_profile_summary.dart';
 import 'package:dotes/src/features/player_import/domain/models/recent_match.dart';
 import 'package:dotes/src/features/progress/domain/models/focus_follow_through_check.dart';
 import 'package:dotes/src/features/progress/domain/models/progress_check.dart';
@@ -30,6 +55,7 @@ import 'package:dotes/src/features/tester_feedback/domain/models/tester_feedback
 import 'package:dotes/src/features/training_preferences/domain/models/coaching_source_summary.dart';
 import 'package:dotes/src/features/training_preferences/presentation/widgets/training_setup_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -252,6 +278,46 @@ void main() {
       );
 
       expect(find.textContaining('Match #'), findsNothing);
+    });
+
+    testWidgets('recent matches can expand to show more games', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(900, 6000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _DashboardLoadedViewHarness(
+          importedPlayer: _importedPlayer(
+            matches: [
+              _recentMatch(matchId: 9001, heroId: 28),
+              _recentMatch(matchId: 9002, heroId: 129),
+              _recentMatch(matchId: 9003, heroId: 2),
+              _recentMatch(matchId: 9004, heroId: 29),
+              _recentMatch(matchId: 9005, heroId: 8),
+              _recentMatch(matchId: 9006, heroId: 74),
+            ],
+          ),
+        ),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byType(MatchesOverviewCard),
+        300,
+        scrollable: find.byType(Scrollable),
+      );
+
+      expect(find.text('See more'), findsOneWidget);
+      expect(find.text('Invoker'), findsNothing);
+
+      await tester.tap(find.text('See more'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invoker'), findsOneWidget);
+      expect(find.text('See less'), findsOneWidget);
+
+      await tester.tap(find.text('See less'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invoker'), findsNothing);
     });
 
     testWidgets('cards render in the correct section order', (tester) async {
@@ -636,48 +702,50 @@ class _DashboardLoadedViewHarnessState
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Builder(
-        builder: (navigatorContext) => DashboardLoadedView(
-          importedPlayer: widget.importedPlayer ?? _importedPlayer(),
-          sampleSummary: widget.sampleSummary ?? _sampleSummary(),
-          coachingInsights: widget.coachingInsights,
-          dashboardVerdict: widget.dashboardVerdict,
-          blockReview: widget.blockReview,
-          endBlockSummary: widget.endBlockSummary,
-          sessionPlan: widget.sessionPlan,
-          nextGamesFocus: widget.nextGamesFocus,
-          onboardingGuide: _showOnboarding ? _onboardingGuide : null,
-          coachingSourceSummary: widget.coachingSourceSummary,
-          trainingHistory: widget.trainingHistory,
-          savedBlockSummaries: widget.savedBlockSummaries,
-          checkpointSaveStatusSummary: widget.checkpointSaveStatusSummary,
-          trainingBlockActionControl: widget.trainingBlockActionControl,
-          isStartingTrainingBlock: false,
-          progressCheck: widget.progressCheck,
-          focusFollowThrough: widget.focusFollowThrough,
-          testerFeedback: widget.testerFeedback,
-          comfortCore: widget.comfortCore,
-          detailsExpanded: _detailsExpanded,
-          onToggleDetails: () {
-            setState(() => _detailsExpanded = !_detailsExpanded);
-          },
-          onOpenHeroDetail: (heroId) {
-            widget.onOpenHeroDetail?.call(navigatorContext, heroId);
-          },
-          onDismissOnboarding: () {
-            setState(() => _showOnboarding = false);
-          },
-          onShowHowItWorks: () {
-            setState(() => _showOnboarding = true);
-          },
-          onStartTrainingBlock: () {},
-          onEditTrainingPreferences: () {},
-          onEditTesterFeedback: () {},
-          onShowPlaytestSummary: () {},
-          onCopySavedSummary: widget.onCopySavedSummary ?? (_) {},
-          onSaveEndBlockSummary: widget.onSaveEndBlockSummary,
-          onGoToImport: () {},
+    return ProviderScope(
+      child: MaterialApp(
+        home: Builder(
+          builder: (navigatorContext) => DashboardLoadedView(
+            importedPlayer: widget.importedPlayer ?? _importedPlayer(),
+            sampleSummary: widget.sampleSummary ?? _sampleSummary(),
+            coachingInsights: widget.coachingInsights,
+            dashboardVerdict: widget.dashboardVerdict,
+            blockReview: widget.blockReview,
+            endBlockSummary: widget.endBlockSummary,
+            sessionPlan: widget.sessionPlan,
+            nextGamesFocus: widget.nextGamesFocus,
+            onboardingGuide: _showOnboarding ? _onboardingGuide : null,
+            coachingSourceSummary: widget.coachingSourceSummary,
+            trainingHistory: widget.trainingHistory,
+            savedBlockSummaries: widget.savedBlockSummaries,
+            checkpointSaveStatusSummary: widget.checkpointSaveStatusSummary,
+            trainingBlockActionControl: widget.trainingBlockActionControl,
+            isStartingTrainingBlock: false,
+            progressCheck: widget.progressCheck,
+            focusFollowThrough: widget.focusFollowThrough,
+            testerFeedback: widget.testerFeedback,
+            comfortCore: widget.comfortCore,
+            detailsExpanded: _detailsExpanded,
+            onToggleDetails: () {
+              setState(() => _detailsExpanded = !_detailsExpanded);
+            },
+            onOpenHeroDetail: (heroId) {
+              widget.onOpenHeroDetail?.call(navigatorContext, heroId);
+            },
+            onDismissOnboarding: () {
+              setState(() => _showOnboarding = false);
+            },
+            onShowHowItWorks: () {
+              setState(() => _showOnboarding = true);
+            },
+            onStartTrainingBlock: () {},
+            onEditTrainingPreferences: () {},
+            onEditTesterFeedback: () {},
+            onShowPlaytestSummary: () {},
+            onCopySavedSummary: widget.onCopySavedSummary ?? (_) {},
+            onSaveEndBlockSummary: widget.onSaveEndBlockSummary,
+            onGoToImport: () {},
+          ),
         ),
       ),
     );
@@ -695,18 +763,22 @@ ImportedPlayerData _importedPlayer({List<RecentMatch>? matches}) {
     recentMatches:
         matches ??
         [
-          RecentMatch(
-            matchId: 9001,
-            heroId: 28,
-            startedAt: DateTime.utc(2025, 3, 20),
-            duration: Duration(minutes: 30),
-            kills: 8,
-            deaths: 4,
-            assists: 10,
-            didWin: true,
-            partySize: 1,
-          ),
+          _recentMatch(matchId: 9001, heroId: 28),
         ],
+  );
+}
+
+RecentMatch _recentMatch({required int matchId, required int heroId}) {
+  return RecentMatch(
+    matchId: matchId,
+    heroId: heroId,
+    startedAt: DateTime.utc(2025, 3, 20).add(Duration(hours: matchId - 9001)),
+    duration: const Duration(minutes: 30),
+    kills: 8,
+    deaths: 4,
+    assists: 10,
+    didWin: true,
+    partySize: 1,
   );
 }
 

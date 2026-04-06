@@ -108,9 +108,11 @@ Use this checklist before each tester build or release candidate. Each scenario 
 - [ ] Demo scenario with no seeded checkpoint: block review and end summary do not appear
 - [ ] Hero detail with no import: shows "Import a recent match sample first" (not a crash)
 - [ ] Hero compare with no import: shows the empty section card (not a crash)
+- [ ] Dashboard with 6+ recent matches shows `See more`; tapping it reveals older games and `See less` collapses back to the first 5
 
 ---
 
 ## Known pre-existing failures (not regressions)
 
 - `widget_test.dart` - "shows the player import screen on launch" - fails in some headless environments when the `TextField` label is queried via `find.text()`. Not a runtime bug.
+

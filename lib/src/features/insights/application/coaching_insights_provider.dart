@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../dashboard/application/comfort_core_provider.dart';
 import '../../matches/presentation/utils/hero_labels.dart';
 import '../../player_import/application/imported_player_provider.dart';
+import '../../player_import/application/play_frequency_provider.dart';
 import '../../roles/application/sample_role_summary_provider.dart';
 import '../../training_preferences/application/training_preferences_providers.dart';
 import '../domain/models/coaching_insight.dart';
@@ -43,6 +44,7 @@ final nextGamesFocusProvider = Provider<NextGamesFocus?>((ref) {
   final insights = ref.watch(coachingInsightsProvider);
   final comfortCore = ref.watch(comfortCoreProvider);
   final generator = ref.watch(nextGamesFocusGeneratorProvider);
+  final playFrequency = ref.watch(playFrequencyProvider);
   return generator.generate(
     insights,
     sampleRoleSummary,
@@ -50,5 +52,7 @@ final nextGamesFocusProvider = Provider<NextGamesFocus?>((ref) {
     recentMatches: importedPlayer.recentMatches,
     heroLabelFor: heroDisplayName,
     trainingPreferences: ref.watch(currentTrainingPreferencesProvider),
+    blockSize: playFrequency?.recommendedBlockSize ?? 5,
+    rankTier: importedPlayer.profile.coachingRankTier,
   );
 });

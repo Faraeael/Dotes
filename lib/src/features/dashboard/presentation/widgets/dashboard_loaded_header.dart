@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/widgets/app_status_badge.dart';
+import '../../../player_import/application/play_frequency_provider.dart';
 import '../../../player_import/domain/models/imported_player_data.dart';
 import 'player_summary_card.dart';
 
-class DashboardLoadedHeader extends StatelessWidget {
+class DashboardLoadedHeader extends ConsumerWidget {
   const DashboardLoadedHeader({
     required this.importedPlayer,
     super.key,
@@ -13,8 +15,11 @@ class DashboardLoadedHeader extends StatelessWidget {
   final ImportedPlayerData importedPlayer;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final playFrequency = ref.watch(playFrequencyProvider);
+    final rankLabel = importedPlayer.profile.rankLabel;
+    final cadenceLabel = playFrequency?.cadenceLabel;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,9 +44,28 @@ class DashboardLoadedHeader extends StatelessWidget {
           importedPlayer.profile.displayName,
           style: theme.textTheme.headlineMedium,
         ),
+        if (rankLabel != null || cadenceLabel != null) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              if (rankLabel != null)
+                AppStatusBadge(
+                  label: rankLabel,
+                  tone: AppStatusTone.info,
+                ),
+              if (cadenceLabel != null)
+                AppStatusBadge(
+                  label: cadenceLabel,
+                  tone: AppStatusTone.info,
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: 8),
         Text(
-          'Read the current sample, lock the next 5-game plan, and keep the match context close.',
+          'Read the current sample, lock the next plan, and keep the match context close.',
           style: theme.textTheme.bodyLarge?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

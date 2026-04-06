@@ -4,6 +4,7 @@ import '../../insights/application/coaching_insights_provider.dart';
 import '../../matches/presentation/utils/hero_labels.dart';
 import '../../meta_reference/application/hero_meta_reference_providers.dart';
 import '../../player_import/application/imported_player_provider.dart';
+import '../../player_import/application/play_frequency_provider.dart';
 import '../../progress/application/progress_check_provider.dart';
 import '../../roles/application/sample_role_summary_provider.dart';
 import '../../training_preferences/application/training_preferences_providers.dart';
@@ -32,6 +33,7 @@ final sessionPlanProvider = Provider<SessionPlan?>((ref) {
   }
 
   final service = ref.watch(sessionPlanServiceProvider);
+  final playFrequency = ref.watch(playFrequencyProvider);
   return service.build(
     verdict: ref.watch(dashboardVerdictProvider),
     nextGamesFocus: ref.watch(nextGamesFocusProvider),
@@ -40,6 +42,7 @@ final sessionPlanProvider = Provider<SessionPlan?>((ref) {
     followThroughCheck: ref.watch(focusFollowThroughProvider),
     heroLabelFor: heroDisplayName,
     trainingPreferences: ref.watch(currentTrainingPreferencesProvider),
+    blockSize: playFrequency?.recommendedBlockSize ?? 5,
   );
 });
 
