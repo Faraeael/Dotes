@@ -15,6 +15,9 @@ import 'package:dotes/src/features/player_import/domain/models/recent_match.dart
 import 'package:dotes/src/features/player_import/domain/models/saved_account_entry.dart';
 import 'package:dotes/src/features/player_import/domain/repositories/player_import_repository.dart';
 import 'package:dotes/src/features/player_import/domain/repositories/saved_account_repository.dart';
+import 'package:dotes/src/features/dashboard/application/saved_block_summary_providers.dart';
+import 'package:dotes/src/features/dashboard/domain/models/saved_block_summary.dart';
+import 'package:dotes/src/features/dashboard/domain/repositories/saved_block_summary_repository.dart';
 import 'package:dotes/src/features/tester_feedback/application/tester_feedback_providers.dart';
 import 'package:dotes/src/features/tester_feedback/domain/models/tester_feedback.dart';
 import 'package:dotes/src/features/tester_feedback/domain/models/tester_feedback_record.dart';
@@ -48,7 +51,13 @@ void main() {
           trainingPreferencesRepositoryProvider.overrideWithValue(
             trainingPreferencesRepository,
           ),
-          savedAccountRepositoryProvider.overrideWithValue(savedAccountRepository),
+
+          savedBlockSummaryRepositoryProvider.overrideWithValue(
+            FakeSavedBlockSummaryRepository(),
+          ),
+          savedAccountRepositoryProvider.overrideWithValue(
+            savedAccountRepository,
+          ),
           savedAccountsClockProvider.overrideWithValue(
             () => DateTime.utc(2026, 4, 1, 12),
           ),
@@ -75,7 +84,54 @@ void main() {
       expect(importedPlayer.recentMatches, hasLength(1));
       expect(savedAccountRepository.entries, hasLength(1));
       expect(savedAccountRepository.entries.single.accountId, 86745912);
-      expect(savedAccountRepository.entries.single.displayName, 'Week 1 Player');
+      expect(
+        savedAccountRepository.entries.single.displayName,
+        'Week 1 Player',
+      );
+    });
+
+    test('rejects account IDs that are too short', () async {
+      final repository = FakePlayerImportRepository(
+        profileResult: Success(_profile()),
+        recentMatchesResult: Success([_match()]),
+      );
+      final checkpointRepository = FakeCoachingCheckpointRepository();
+      final testerFeedbackRepository = FakeTesterFeedbackRepository();
+      final trainingPreferencesRepository = FakeTrainingPreferencesRepository();
+      final container = ProviderContainer(
+        overrides: [
+          playerImportRepositoryProvider.overrideWithValue(repository),
+          coachingCheckpointRepositoryProvider.overrideWithValue(
+            checkpointRepository,
+          ),
+          testerFeedbackRepositoryProvider.overrideWithValue(
+            testerFeedbackRepository,
+          ),
+          trainingPreferencesRepositoryProvider.overrideWithValue(
+            trainingPreferencesRepository,
+          ),
+
+          savedBlockSummaryRepositoryProvider.overrideWithValue(
+            FakeSavedBlockSummaryRepository(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final controller = container.read(
+        playerImportControllerProvider.notifier,
+      );
+
+      controller.updatePlayerId('123');
+      final success = await controller.submit();
+
+      expect(success, isFalse);
+      expect(
+        container.read(playerImportControllerProvider).errorMessage,
+        'That account ID looks too short. Enter at least 4 digits.',
+      );
+      expect(repository.profileCalls, 0);
+      expect(repository.recentMatchesCalls, 0);
     });
 
     test('clears stale imported data on validation failure', () async {
@@ -98,6 +154,10 @@ void main() {
           trainingPreferencesRepositoryProvider.overrideWithValue(
             trainingPreferencesRepository,
           ),
+
+          savedBlockSummaryRepositoryProvider.overrideWithValue(
+            FakeSavedBlockSummaryRepository(),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -116,7 +176,7 @@ void main() {
       expect(container.read(importedPlayerProvider), isNull);
       expect(
         container.read(playerImportControllerProvider).errorMessage,
-        'Enter a player or account ID.',
+        'Enter the numeric account ID from the player profile you want to review.',
       );
       expect(repository.profileCalls, 0);
       expect(repository.recentMatchesCalls, 0);
@@ -150,6 +210,10 @@ void main() {
             ),
             trainingPreferencesRepositoryProvider.overrideWithValue(
               trainingPreferencesRepository,
+            ),
+
+            savedBlockSummaryRepositoryProvider.overrideWithValue(
+              FakeSavedBlockSummaryRepository(),
             ),
           ],
         );
@@ -199,6 +263,10 @@ void main() {
             ),
             trainingPreferencesRepositoryProvider.overrideWithValue(
               trainingPreferencesRepository,
+            ),
+
+            savedBlockSummaryRepositoryProvider.overrideWithValue(
+              FakeSavedBlockSummaryRepository(),
             ),
           ],
         );
@@ -251,6 +319,10 @@ void main() {
             trainingPreferencesRepositoryProvider.overrideWithValue(
               trainingPreferencesRepository,
             ),
+
+            savedBlockSummaryRepositoryProvider.overrideWithValue(
+              FakeSavedBlockSummaryRepository(),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -294,6 +366,10 @@ void main() {
             trainingPreferencesRepositoryProvider.overrideWithValue(
               trainingPreferencesRepository,
             ),
+
+            savedBlockSummaryRepositoryProvider.overrideWithValue(
+              FakeSavedBlockSummaryRepository(),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -335,6 +411,10 @@ void main() {
           ),
           trainingPreferencesRepositoryProvider.overrideWithValue(
             trainingPreferencesRepository,
+          ),
+
+          savedBlockSummaryRepositoryProvider.overrideWithValue(
+            FakeSavedBlockSummaryRepository(),
           ),
         ],
       );
@@ -379,11 +459,17 @@ void main() {
           trainingPreferencesRepositoryProvider.overrideWithValue(
             trainingPreferencesRepository,
           ),
+
+          savedBlockSummaryRepositoryProvider.overrideWithValue(
+            FakeSavedBlockSummaryRepository(),
+          ),
         ],
       );
       addTearDown(container.dispose);
 
-      final controller = container.read(playerImportControllerProvider.notifier);
+      final controller = container.read(
+        playerImportControllerProvider.notifier,
+      );
 
       controller.updatePlayerId('86745912');
       final success = await controller.submit();
@@ -422,11 +508,17 @@ void main() {
           trainingPreferencesRepositoryProvider.overrideWithValue(
             trainingPreferencesRepository,
           ),
+
+          savedBlockSummaryRepositoryProvider.overrideWithValue(
+            FakeSavedBlockSummaryRepository(),
+          ),
         ],
       );
       addTearDown(container.dispose);
 
-      final controller = container.read(playerImportControllerProvider.notifier);
+      final controller = container.read(
+        playerImportControllerProvider.notifier,
+      );
 
       controller.updatePlayerId('2222');
       final success = await controller.submit();
@@ -456,12 +548,20 @@ void main() {
           trainingPreferencesRepositoryProvider.overrideWithValue(
             trainingPreferencesRepository,
           ),
-          savedAccountRepositoryProvider.overrideWithValue(savedAccountRepository),
+
+          savedBlockSummaryRepositoryProvider.overrideWithValue(
+            FakeSavedBlockSummaryRepository(),
+          ),
+          savedAccountRepositoryProvider.overrideWithValue(
+            savedAccountRepository,
+          ),
         ],
       );
       addTearDown(container.dispose);
 
-      final controller = container.read(playerImportControllerProvider.notifier);
+      final controller = container.read(
+        playerImportControllerProvider.notifier,
+      );
       final scenario = container
           .read(demoPlayerScenariosProvider)
           .firstWhere((item) => item.id == 'completed_on_track_block');
@@ -472,10 +572,7 @@ void main() {
       final importedPlayer = container.read(importedPlayerProvider);
       expect(importedPlayer, isNotNull);
       expect(importedPlayer!.source.isDemo, isTrue);
-      expect(
-        importedPlayer.source.scenarioLabel,
-        'Completed on-track block',
-      );
+      expect(importedPlayer.source.scenarioLabel, 'Completed on-track block');
       expect(
         container.read(previousCoachingCheckpointProvider)?.savedSessionPlan,
         isNotNull,
@@ -531,6 +628,10 @@ void main() {
           trainingPreferencesRepositoryProvider.overrideWithValue(
             trainingPreferencesRepository,
           ),
+
+          savedBlockSummaryRepositoryProvider.overrideWithValue(
+            FakeSavedBlockSummaryRepository(),
+          ),
           savedAccountRepositoryProvider.overrideWithValue(
             FakeSavedAccountRepository(),
           ),
@@ -541,7 +642,9 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      final controller = container.read(playerImportControllerProvider.notifier);
+      final controller = container.read(
+        playerImportControllerProvider.notifier,
+      );
       final demoScenario = container
           .read(demoPlayerScenariosProvider)
           .firstWhere((item) => item.id == 'completed_off_track_block');
@@ -583,59 +686,69 @@ void main() {
       expect(repository.recentMatchesCalls, 1);
     });
 
-    test('reopens a saved account and refreshes the last-opened order', () async {
-      final repository = FakePlayerImportRepository(
-        profileResult: Success(_profile(accountId: 2222)),
-        recentMatchesResult: Success([_match()]),
-      );
-      final savedAccountRepository = FakeSavedAccountRepository(
-        initialEntries: [
-          SavedAccountEntry(
-            accountId: 86745912,
-            displayName: 'Week 1 Player',
-            sourceType: SavedAccountSourceType.real,
-            lastOpenedAt: DateTime.utc(2026, 3, 31, 12),
-          ),
-          SavedAccountEntry(
-            accountId: 2222,
-            displayName: 'Offlane Player',
-            sourceType: SavedAccountSourceType.real,
-            lastOpenedAt: DateTime.utc(2026, 3, 30, 12),
-          ),
-        ],
-      );
-      final container = ProviderContainer(
-        overrides: [
-          playerImportRepositoryProvider.overrideWithValue(repository),
-          coachingCheckpointRepositoryProvider.overrideWithValue(
-            FakeCoachingCheckpointRepository(),
-          ),
-          testerFeedbackRepositoryProvider.overrideWithValue(
-            FakeTesterFeedbackRepository(),
-          ),
-          trainingPreferencesRepositoryProvider.overrideWithValue(
-            FakeTrainingPreferencesRepository(),
-          ),
-          savedAccountRepositoryProvider.overrideWithValue(savedAccountRepository),
-          savedAccountsClockProvider.overrideWithValue(
-            () => DateTime.utc(2026, 4, 1, 18),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
+    test(
+      'reopens a saved account and refreshes the last-opened order',
+      () async {
+        final repository = FakePlayerImportRepository(
+          profileResult: Success(_profile(accountId: 2222)),
+          recentMatchesResult: Success([_match()]),
+        );
+        final savedAccountRepository = FakeSavedAccountRepository(
+          initialEntries: [
+            SavedAccountEntry(
+              accountId: 86745912,
+              displayName: 'Week 1 Player',
+              sourceType: SavedAccountSourceType.real,
+              lastOpenedAt: DateTime.utc(2026, 3, 31, 12),
+            ),
+            SavedAccountEntry(
+              accountId: 2222,
+              displayName: 'Offlane Player',
+              sourceType: SavedAccountSourceType.real,
+              lastOpenedAt: DateTime.utc(2026, 3, 30, 12),
+            ),
+          ],
+        );
+        final container = ProviderContainer(
+          overrides: [
+            playerImportRepositoryProvider.overrideWithValue(repository),
+            coachingCheckpointRepositoryProvider.overrideWithValue(
+              FakeCoachingCheckpointRepository(),
+            ),
+            testerFeedbackRepositoryProvider.overrideWithValue(
+              FakeTesterFeedbackRepository(),
+            ),
+            trainingPreferencesRepositoryProvider.overrideWithValue(
+              FakeTrainingPreferencesRepository(),
+            ),
+            savedBlockSummaryRepositoryProvider.overrideWithValue(
+              FakeSavedBlockSummaryRepository(),
+            ),
+            savedAccountRepositoryProvider.overrideWithValue(
+              savedAccountRepository,
+            ),
+            savedAccountsClockProvider.overrideWithValue(
+              () => DateTime.utc(2026, 4, 1, 18),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      final controller = container.read(playerImportControllerProvider.notifier);
-      final savedAccount = savedAccountRepository.entries.last;
+        final controller = container.read(
+          playerImportControllerProvider.notifier,
+        );
+        final savedAccount = savedAccountRepository.entries.last;
 
-      expect(await controller.submitSavedAccount(savedAccount), isTrue);
-      expect(container.read(importedPlayerProvider)?.profile.accountId, 2222);
-      expect(
-        container.read(lastOpenedSavedAccountProvider)?.accountId,
-        2222,
-      );
-      expect(savedAccountRepository.entries.first.accountId, 2222);
-      expect(savedAccountRepository.entries.first.displayName, 'Week 1 Player');
-    });
+        expect(await controller.submitSavedAccount(savedAccount), isTrue);
+        expect(container.read(importedPlayerProvider)?.profile.accountId, 2222);
+        expect(container.read(lastOpenedSavedAccountProvider)?.accountId, 2222);
+        expect(savedAccountRepository.entries.first.accountId, 2222);
+        expect(
+          savedAccountRepository.entries.first.displayName,
+          'Week 1 Player',
+        );
+      },
+    );
   });
 }
 
@@ -747,9 +860,8 @@ class FakeTrainingPreferencesRepository
 }
 
 class FakeSavedAccountRepository implements SavedAccountRepository {
-  FakeSavedAccountRepository({
-    List<SavedAccountEntry>? initialEntries,
-  }) : entries = [...?initialEntries];
+  FakeSavedAccountRepository({List<SavedAccountEntry>? initialEntries})
+    : entries = [...?initialEntries];
 
   List<SavedAccountEntry> entries;
 
@@ -774,7 +886,9 @@ class FakeSavedAccountRepository implements SavedAccountRepository {
     } else {
       entries.add(entry);
     }
-    entries.sort((left, right) => right.lastOpenedAt.compareTo(left.lastOpenedAt));
+    entries.sort(
+      (left, right) => right.lastOpenedAt.compareTo(left.lastOpenedAt),
+    );
   }
 
   @override
@@ -788,12 +902,30 @@ class FakeSavedAccountRepository implements SavedAccountRepository {
   }
 }
 
+class FakeSavedBlockSummaryRepository implements SavedBlockSummaryRepository {
+  final Map<int, List<SavedBlockSummary>> _summariesByAccount = {};
+
+  @override
+  Future<List<SavedBlockSummary>> loadForAccount(int accountId) async {
+    return (_summariesByAccount[accountId] ?? const []).toList(growable: false);
+  }
+
+  @override
+  Future<void> saveForAccount(int accountId, SavedBlockSummary summary) async {
+    final existing = _summariesByAccount[accountId] ?? const [];
+    if (existing.any((entry) => entry.shareText == summary.shareText)) {
+      return;
+    }
+
+    _summariesByAccount[accountId] = [summary, ...existing];
+  }
+}
+
 class FakeTesterFeedbackRepository implements TesterFeedbackRepository {
-  FakeTesterFeedbackRepository({
-    Map<int, TesterFeedback>? storedFeedback,
-  }) : _storedFeedback = Map<int, TesterFeedback>.from(
-         storedFeedback ?? const {},
-       );
+  FakeTesterFeedbackRepository({Map<int, TesterFeedback>? storedFeedback})
+    : _storedFeedback = Map<int, TesterFeedback>.from(
+        storedFeedback ?? const {},
+      );
 
   final Map<int, TesterFeedback> _storedFeedback;
 

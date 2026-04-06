@@ -29,12 +29,18 @@ void main() {
               summary: BlockSummaryExport(
                 playerLabel: 'Player (Account 86745912)',
                 completionDateLabel: 'Apr 1, 2026',
+                focusLabel: 'Stay on one role and two heroes.',
+                queueLabel: 'Carry only',
+                heroBlockLabel: 'Slardar + Mars',
+                targetLabel: 'Stay inside the block',
+                reviewWindowLabel: 'next 5 games',
                 outcome: 'On track',
                 mainTargetResult: 'Improved',
                 adherenceResult: 'Stayed in block',
                 takeaway: 'You stayed inside the block and deaths improved.',
                 nextStep: 'Run the same block again.',
                 shareText: 'summary text',
+                practiceNote: 'Practicing safer lane exits.',
               ),
             ),
           ),
@@ -42,6 +48,12 @@ void main() {
       );
 
       expect(find.text('Summary ready to share'), findsOneWidget);
+      expect(find.text('Block setup'), findsOneWidget);
+      expect(find.text('Share preview'), findsOneWidget);
+      expect(
+        find.text('Focus: Stay on one role and two heroes.'),
+        findsOneWidget,
+      );
       expect(
         find.text(
           'Copy this result into tester notes, chat, or a handoff doc.',

@@ -5,6 +5,8 @@ class NextGamesFocus {
     required this.title,
     required this.action,
     required this.sourceLabel,
+    this.confidenceLabel = 'Conservative read',
+    this.reasonLabel,
     this.sourceType,
     this.heroBlock,
   });
@@ -12,6 +14,8 @@ class NextGamesFocus {
   final String title;
   final String action;
   final String sourceLabel;
+  final String confidenceLabel;
+  final String? reasonLabel;
   final CoachingInsightType? sourceType;
   final NextGamesFocusHeroBlock? heroBlock;
 }

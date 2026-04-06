@@ -1,12 +1,7 @@
 import 'player_role.dart';
 import 'role_confidence.dart';
 
-enum SampleRoleReadType {
-  clear,
-  mixedRoles,
-  unclearSignals,
-  smallSample,
-}
+enum SampleRoleReadType { clear, mixedRoles, unclearSignals, smallSample }
 
 class SampleRoleSummary {
   const SampleRoleSummary({
@@ -14,18 +9,21 @@ class SampleRoleSummary {
     required this.primaryRoleConfidence,
     required this.readType,
     required this.roleDistribution,
+    this.roleCrossCheckLabel,
   });
 
   final PlayerRole primaryRole;
   final RoleConfidence primaryRoleConfidence;
   final SampleRoleReadType readType;
   final Map<PlayerRole, int> roleDistribution;
+  final String? roleCrossCheckLabel;
 
   int get totalMatches =>
       roleDistribution.values.fold<int>(0, (sum, count) => sum + count);
 
-  int get primaryRoleMatchCount =>
-      primaryRole == PlayerRole.unknown ? 0 : (roleDistribution[primaryRole] ?? 0);
+  int get primaryRoleMatchCount => primaryRole == PlayerRole.unknown
+      ? 0
+      : (roleDistribution[primaryRole] ?? 0);
 
   double get primaryRoleShare =>
       totalMatches == 0 ? 0 : primaryRoleMatchCount / totalMatches;
@@ -67,11 +65,20 @@ class SampleRoleSummary {
     return 'Mixed / still estimating';
   }
 
-  String get estimateStrengthLabel => switch (primaryRoleConfidence) {
-    RoleConfidence.high => 'Strong estimate',
-    RoleConfidence.medium => 'Moderate estimate',
-    RoleConfidence.low => 'Low-confidence estimate',
-  };
+  String get estimateStrengthLabel {
+    final baseLabel = switch (primaryRoleConfidence) {
+      RoleConfidence.high => 'Strong estimate',
+      RoleConfidence.medium => 'Moderate estimate',
+      RoleConfidence.low => 'Low-confidence estimate',
+    };
+
+    if (roleCrossCheckLabel == null ||
+        primaryRoleConfidence == RoleConfidence.low) {
+      return baseLabel;
+    }
+
+    return '$baseLabel + hero-role cross-check';
+  }
 
   String? get trustedRoleLabelForFocus =>
       hasTrustedPrimaryRoleForFocus ? primaryRole.label : null;
@@ -88,35 +95,81 @@ class SampleRoleSummary {
     return 'one role';
   }
 
-  String get reasonLabel => switch (readType) {
-    SampleRoleReadType.clear =>
-      hasTrustedPrimaryRoleForFocus
-          ? 'Recent matches lean strongly toward one role read from the available summary stats.'
-          : 'Recent matches lean in one direction, but the current role read is still an estimate from limited summary stats.',
-    SampleRoleReadType.mixedRoles =>
-      'Your recent matches point toward multiple role patterns, so the app keeps the role estimate broad for now.',
-    SampleRoleReadType.unclearSignals =>
-      'Too many recent matches lacked enough lane or economy signal for a precise role estimate.',
-    SampleRoleReadType.smallSample =>
-      'This sample is still small, so the current role estimate can move quickly over the next few matches.',
-  };
+  String get reasonLabel {
+    final baseLabel = switch (readType) {
+      SampleRoleReadType.clear =>
+        hasTrustedPrimaryRoleForFocus
+            ? 'Recent matches lean strongly toward one role read from the available summary stats.'
+            : 'Recent matches lean in one direction, but the current role read is still an estimate from limited summary stats.',
+      SampleRoleReadType.mixedRoles =>
+        'Your recent matches point toward multiple role patterns, so the app keeps the role estimate broad for now.',
+      SampleRoleReadType.unclearSignals =>
+        'Too many recent matches lacked enough lane or economy signal for a precise role estimate.',
+      SampleRoleReadType.smallSample =>
+        'This sample is still small, so the current role estimate can move quickly over the next few matches.',
+    };
+
+    if (roleCrossCheckLabel == null) {
+      return baseLabel;
+    }
+
+    return '$baseLabel $roleCrossCheckLabel';
+  }
+
+  List<String> get rationaleLines {
+    final lines = <String>[
+      switch (readType) {
+        SampleRoleReadType.clear =>
+          hasTrustedPrimaryRoleForFocus
+              ? 'One role clearly leads the current sample from the available summary stats.'
+              : 'One role leads the sample, but the read still stays estimate-first.',
+        SampleRoleReadType.mixedRoles =>
+          'Recent matches are split across multiple role patterns, so the app keeps the role read broad.',
+        SampleRoleReadType.unclearSignals =>
+          'Too many matches lacked enough lane or economy signal for a precise role read.',
+        SampleRoleReadType.smallSample =>
+          'This sample is still small, so the role read can move quickly with a few more games.',
+      },
+    ];
+
+    if (hasClearPrimaryRole && primaryRole != PlayerRole.unknown) {
+      lines.add(
+        '$primaryRoleMatchCount of $totalMatches matches currently lean ${hasTrustedPrimaryRoleForFocus ? primaryRole.label : focusRoleScopeLabel}.',
+      );
+    }
+
+    if (unknownShare > 0) {
+      lines.add(
+        '${(unknownShare * 100).round()}% of matches stayed too noisy for a precise role label.',
+      );
+    }
+
+    if (roleCrossCheckLabel != null) {
+      lines.add(roleCrossCheckLabel!);
+    }
+
+    return lines;
+  }
 
   String? get roleMixDetailsLabel {
     if (!hasTrustedPrimaryRoleForFocus) {
       return null;
     }
 
-    final entries = roleDistribution.entries
-        .where((entry) => entry.key != PlayerRole.unknown && entry.value > 0)
-        .toList()
-      ..sort((left, right) {
-        final countCompare = right.value.compareTo(left.value);
-        if (countCompare != 0) {
-          return countCompare;
-        }
+    final entries =
+        roleDistribution.entries
+            .where(
+              (entry) => entry.key != PlayerRole.unknown && entry.value > 0,
+            )
+            .toList()
+          ..sort((left, right) {
+            final countCompare = right.value.compareTo(left.value);
+            if (countCompare != 0) {
+              return countCompare;
+            }
 
-        return left.key.sortOrder.compareTo(right.key.sortOrder);
-      });
+            return left.key.sortOrder.compareTo(right.key.sortOrder);
+          });
 
     if (entries.isEmpty) {
       return null;
@@ -136,7 +189,6 @@ class SampleRoleSummary {
   }
 
   bool _isSupportRole(PlayerRole role) {
-    return role == PlayerRole.softSupport ||
-        role == PlayerRole.hardSupport;
+    return role == PlayerRole.softSupport || role == PlayerRole.hardSupport;
   }
 }

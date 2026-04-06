@@ -10,6 +10,8 @@ class PlayerIdForm extends StatelessWidget {
     required this.errorText,
     required this.onChanged,
     required this.onSubmit,
+    required this.onShowHowItWorks,
+    required this.onShowAccountIdHelp,
     super.key,
   });
 
@@ -18,6 +20,8 @@ class PlayerIdForm extends StatelessWidget {
   final String? errorText;
   final ValueChanged<String> onChanged;
   final Future<void> Function() onSubmit;
+  final VoidCallback onShowHowItWorks;
+  final VoidCallback onShowAccountIdHelp;
 
   @override
   Widget build(BuildContext context) {
@@ -34,16 +38,31 @@ class PlayerIdForm extends StatelessWidget {
             const AppCardHeader(
               title: 'Import player',
               subtitle:
-                  'Enter a Dota account ID to load the latest sample and start the coaching loop.',
+                  'Load a recent public match sample to start or review a 5-game coaching block.',
             ),
             const SizedBox(height: 12),
             Text(
-              'First import: get the read and session plan. Later import: review the finished block.',
+              'First import builds the current read and session plan. Later import reviews the finished block after 5 newer games.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                TextButton(
+                  onPressed: onShowHowItWorks,
+                  child: const Text('How coaching works'),
+                ),
+                TextButton(
+                  onPressed: onShowAccountIdHelp,
+                  child: const Text('How to find account ID'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: controller,
               keyboardType: TextInputType.number,
@@ -56,7 +75,8 @@ class PlayerIdForm extends StatelessWidget {
               decoration: const InputDecoration(
                 labelText: 'Account ID',
                 hintText: 'Example: 86745912',
-                helperText: 'Digits only. You can switch accounts later.',
+                helperText:
+                    'Use the numeric account ID from a public Dota profile. You can switch accounts later.',
               ),
               onChanged: onChanged,
               onSubmitted: (_) => onSubmit(),

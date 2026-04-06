@@ -1,8 +1,8 @@
 import 'package:dotes/src/features/dashboard/domain/services/comfort_core_service.dart';
 import 'package:dotes/src/features/hero_detail/domain/services/hero_detail_service.dart';
 import 'package:dotes/src/features/hero_detail/presentation/widgets/hero_detail_meta_reference_card.dart';
-import 'package:dotes/src/features/meta_reference/domain/models/hero_meta_reference.dart';
 import 'package:dotes/src/features/meta_reference/data/repositories/local_hero_meta_reference_repository.dart';
+import 'package:dotes/src/features/meta_reference/domain/models/hero_meta_reference.dart';
 import 'package:dotes/src/features/player_import/data/demo/demo_player_scenarios.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,9 +27,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(
-          body: HeroDetailMetaReferenceCard(detail: detail),
-        ),
+        home: Scaffold(body: HeroDetailMetaReferenceCard(detail: detail)),
       ),
     );
     await tester.pumpAndSettle();
@@ -39,7 +37,13 @@ void main() {
     expect(find.text('Playable'), findsOneWidget);
     expect(find.text('Current patch'), findsOneWidget);
     expect(
-      find.text('This hero looks playable, but your own comfort read matters more than the patch.'),
+      find.text('Patch 7.41a matches the supported patch.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'This hero looks playable, but your own comfort read matters more than the patch.',
+      ),
       findsOneWidget,
     );
   });
@@ -69,20 +73,20 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(
-          body: HeroDetailMetaReferenceCard(detail: detail),
-        ),
+        home: Scaffold(body: HeroDetailMetaReferenceCard(detail: detail)),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Outdated'), findsOneWidget);
     expect(
-      find.text('Meta reference is outdated for the current patch.'),
-      findsOneWidget,
+      find.text('Patch 7.41a is behind supported patch 7.41b.'),
+      findsWidgets,
     );
     expect(
-      find.text('Lean on your own sample until meta data is refreshed.'),
+      find.text(
+        'Lean on your own sample until the local patch reference is refreshed.',
+      ),
       findsOneWidget,
     );
   });

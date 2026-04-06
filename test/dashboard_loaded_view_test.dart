@@ -5,12 +5,14 @@ import 'package:dotes/src/features/dashboard/domain/models/comfort_core_summary.
 import 'package:dotes/src/features/dashboard/domain/models/dashboard_verdict.dart';
 import 'package:dotes/src/features/dashboard/domain/models/dashboard_onboarding_guide.dart';
 import 'package:dotes/src/features/dashboard/domain/models/end_block_summary.dart';
+import 'package:dotes/src/features/dashboard/domain/models/saved_block_summary.dart';
 import 'package:dotes/src/features/dashboard/domain/models/session_plan.dart';
 import 'package:dotes/src/features/dashboard/domain/models/training_history.dart';
 import 'package:dotes/src/features/dashboard/presentation/utils/imported_sample_summary.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/block_review_card.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/comfort_core_card.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/imported_sample_card.dart';
+import 'package:dotes/src/features/dashboard/presentation/widgets/saved_block_summaries_card.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/dashboard_loaded_view.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/end_block_summary_card.dart';
 import 'package:dotes/src/features/dashboard/presentation/widgets/session_plan_card.dart';
@@ -133,7 +135,10 @@ void main() {
 
       expect(find.byType(EndBlockSummaryCard), findsOneWidget);
       expect(find.text('End block summary'), findsOneWidget);
-      expect(find.text('Takeaway: You stayed inside the block and deaths improved.'), findsOneWidget);
+      expect(
+        find.text('Takeaway: You stayed inside the block and deaths improved.'),
+        findsOneWidget,
+      );
       expect(find.text('Next: Run the same block again.'), findsOneWidget);
       expect(find.text('Save summary'), findsOneWidget);
     });
@@ -149,6 +154,46 @@ void main() {
       expect(find.text('Save summary'), findsNothing);
     });
 
+    testWidgets('saved summaries render when entries exist', (tester) async {
+      await tester.pumpWidget(
+        _DashboardLoadedViewHarness(
+          savedBlockSummaries: [
+            SavedBlockSummary(
+              playerLabel: 'Player (Account 86745912)',
+              completionDateLabel: 'Apr 6, 2026',
+              outcome: 'On track',
+              mainTargetResult: 'Improved',
+              adherenceResult: 'Stayed in block',
+              takeaway: 'Deaths improved inside the block.',
+              nextStep: 'Run the same block again.',
+              shareText: 'saved-summary-share',
+              practiceNote: 'Practicing calmer lane exits and cleaner resets.',
+              savedAt: DateTime.utc(2026, 4, 6),
+            ),
+          ],
+          onCopySavedSummary: (_) {},
+        ),
+      );
+
+      await tester.scrollUntilVisible(
+        find.text('Saved summaries'),
+        300,
+        scrollable: find.byType(Scrollable),
+      );
+
+      expect(find.text('Saved summaries'), findsOneWidget);
+      expect(find.text('Copy summary'), findsOneWidget);
+      expect(
+        find.text(
+          'Practice note: Practicing calmer lane exits and cleaner resets.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Takeaway: Deaths improved inside the block.'),
+        findsOneWidget,
+      );
+    });
     testWidgets('uses the loaded player name in the app bar', (tester) async {
       await tester.pumpWidget(_DashboardLoadedViewHarness());
 
@@ -193,6 +238,8 @@ void main() {
 
       expect(find.text('Current sample'), findsOneWidget);
       expect(find.text('Training history'), findsOneWidget);
+      expect(find.text('No completed cycles yet'), findsOneWidget);
+      expect(find.text('Saved summaries'), findsOneWidget);
     });
 
     testWidgets('recent matches hide the raw match id line', (tester) async {
@@ -237,10 +284,18 @@ void main() {
         ),
         findsOneWidget,
       );
+
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('details-section')),
           matching: find.byType(TrainingHistoryCard),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('details-section')),
+          matching: find.byType(SavedBlockSummariesCard),
         ),
         findsOneWidget,
       );
@@ -293,6 +348,9 @@ void main() {
             mostPlayedHeroLabel: null,
             primaryRoleLabel: 'Mixed / still estimating',
             roleReasonLabel: 'Need more games for a stable read.',
+            roleRationaleLines: [
+              'This sample is still small, so the role read can move quickly with a few more games.',
+            ],
             roleMixDetailsLabel: null,
             roleReadLabel: 'Low-confidence estimate',
             primaryRoleAdherenceLabel: null,
@@ -302,6 +360,17 @@ void main() {
             entries: [],
             fallbackMessage:
                 'No completed cycles yet \u2014 finish your first 5-game block to see history here.',
+            trend: TrainingHistoryTrend(
+              headline: 'No completed cycles yet',
+              detail:
+                  'Finish your first full 5-game review cycle to start a long-term trend read.',
+              completedCycles: 0,
+              onTrackCount: 0,
+              mixedCount: 0,
+              offTrackCount: 0,
+              currentStreakCount: 0,
+              currentStreakOutcome: null,
+            ),
           ),
           progressCheck: const ProgressCheck.tooSmall(
             fallbackMessage: 'Need at least 5 matches to compare progress.',
@@ -482,7 +551,20 @@ class _DashboardLoadedViewHarness extends StatefulWidget {
       entries: [],
       fallbackMessage:
           'No completed cycles yet \u2014 finish your first 5-game block to see history here.',
+      trend: TrainingHistoryTrend(
+        headline: 'No completed cycles yet',
+        detail:
+            'Finish your first full 5-game review cycle to start a long-term trend read.',
+        completedCycles: 0,
+        onTrackCount: 0,
+        mixedCount: 0,
+        offTrackCount: 0,
+        currentStreakCount: 0,
+        currentStreakOutcome: null,
+      ),
     ),
+    this.savedBlockSummaries = const [],
+    this.onCopySavedSummary,
     this.checkpointSaveStatusSummary,
     this.progressCheck = const ProgressCheck.ready(
       blockSize: 5,
@@ -526,6 +608,8 @@ class _DashboardLoadedViewHarness extends StatefulWidget {
   final NextGamesFocus nextGamesFocus;
   final CoachingSourceSummary coachingSourceSummary;
   final TrainingHistory trainingHistory;
+  final List<SavedBlockSummary> savedBlockSummaries;
+  final ValueChanged<String>? onCopySavedSummary;
   final CheckpointSaveStatusSummary? checkpointSaveStatusSummary;
   final ProgressCheck progressCheck;
   final FocusFollowThroughCheck focusFollowThrough;
@@ -566,6 +650,7 @@ class _DashboardLoadedViewHarnessState
           onboardingGuide: _showOnboarding ? _onboardingGuide : null,
           coachingSourceSummary: widget.coachingSourceSummary,
           trainingHistory: widget.trainingHistory,
+          savedBlockSummaries: widget.savedBlockSummaries,
           checkpointSaveStatusSummary: widget.checkpointSaveStatusSummary,
           trainingBlockActionControl: widget.trainingBlockActionControl,
           isStartingTrainingBlock: false,
@@ -590,6 +675,7 @@ class _DashboardLoadedViewHarnessState
           onEditTrainingPreferences: () {},
           onEditTesterFeedback: () {},
           onShowPlaytestSummary: () {},
+          onCopySavedSummary: widget.onCopySavedSummary ?? (_) {},
           onSaveEndBlockSummary: widget.onSaveEndBlockSummary,
           onGoToImport: () {},
         ),
@@ -634,6 +720,10 @@ ImportedSampleSummary _sampleSummary() {
     mostPlayedHeroLabel: 'Slardar',
     primaryRoleLabel: 'Carry',
     roleReasonLabel: 'Recent matches lean toward one core role.',
+    roleRationaleLines: [
+      'One role clearly leads the current sample from the available summary stats.',
+      '8 of 10 matches currently lean Carry.',
+    ],
     roleMixDetailsLabel: null,
     roleReadLabel: 'Strong estimate',
     primaryRoleAdherenceLabel: null,

@@ -28,6 +28,89 @@ void main() {
       expect(find.text('Edit setup'), findsOneWidget);
     });
 
+    testWidgets('shows a saved coaching goal in the setup summary', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TrainingSetupCard(
+              summary: const CoachingSourceSummary(
+                headline: 'Coaching source: Manual setup',
+                detail: 'Role: Mid | Goal: Practice cleaner lane exits.',
+              ),
+              onEdit: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.text('Role: Mid | Goal: Practice cleaner lane exits.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows a saved focus priority in the setup summary', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TrainingSetupCard(
+              summary: const CoachingSourceSummary(
+                headline: 'Coaching source: Manual setup',
+                detail: 'Priority: Reduce deaths',
+              ),
+              onEdit: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Priority: Reduce deaths'), findsOneWidget);
+    });
+
+    testWidgets('shows a saved coaching style in the setup summary', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TrainingSetupCard(
+              summary: const CoachingSourceSummary(
+                headline: 'Coaching source: Manual setup',
+                detail: 'Style: Direct',
+              ),
+              onEdit: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Style: Direct'), findsOneWidget);
+    });
+
+    testWidgets('shows a saved queue preference in the setup summary', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TrainingSetupCard(
+              summary: const CoachingSourceSummary(
+                headline: 'Coaching source: Manual setup',
+                detail: 'Queue: Solo only',
+              ),
+              onEdit: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Queue: Solo only'), findsOneWidget);
+    });
+
     testWidgets('shows the how coaching works action when provided', (
       tester,
     ) async {

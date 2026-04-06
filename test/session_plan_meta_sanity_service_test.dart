@@ -9,41 +9,50 @@ void main() {
   const service = SessionPlanMetaSanityService();
 
   group('SessionPlanMetaSanityService', () {
-    test('marks a two-hero block as meta-aligned when both heroes are high meta', () {
-      final sanity = service.build(
-        plan: _plan([129, 135]),
-        currentSupportedPatchLabel: '7.41a',
-        comfortCore: null,
-        metaReferenceFor: _referenceFor,
-      );
+    test(
+      'marks a two-hero block as meta-aligned when both heroes are high meta',
+      () {
+        final sanity = service.build(
+          plan: _plan([129, 135]),
+          currentSupportedPatchLabel: '7.41a',
+          comfortCore: null,
+          metaReferenceFor: _referenceFor,
+        );
 
-      expect(sanity.status, SessionPlanMetaSanityStatus.metaAligned);
-      expect(sanity.message, 'This block is meta-aligned.');
-    });
+        expect(sanity.status, SessionPlanMetaSanityStatus.metaAligned);
+        expect(sanity.message, 'This block is meta-aligned.');
+      },
+    );
 
-    test('marks a block as mixed when one hero is high meta and one is not', () {
-      final sanity = service.build(
-        plan: _plan([129, 28]),
-        currentSupportedPatchLabel: '7.41a',
-        comfortCore: null,
-        metaReferenceFor: _referenceFor,
-      );
+    test(
+      'marks a block as mixed when one hero is high meta and one is not',
+      () {
+        final sanity = service.build(
+          plan: _plan([129, 28]),
+          currentSupportedPatchLabel: '7.41a',
+          comfortCore: null,
+          metaReferenceFor: _referenceFor,
+        );
 
-      expect(sanity.status, SessionPlanMetaSanityStatus.mixed);
-      expect(sanity.message, 'This block is mixed between comfort and meta.');
-    });
+        expect(sanity.status, SessionPlanMetaSanityStatus.mixed);
+        expect(sanity.message, 'This block is mixed between comfort and meta.');
+      },
+    );
 
-    test('marks a block as comfort-first when covered heroes are not high meta', () {
-      final sanity = service.build(
-        plan: _plan([28, 67]),
-        currentSupportedPatchLabel: '7.41a',
-        comfortCore: null,
-        metaReferenceFor: _referenceFor,
-      );
+    test(
+      'marks a block as comfort-first when covered heroes are not high meta',
+      () {
+        final sanity = service.build(
+          plan: _plan([28, 67]),
+          currentSupportedPatchLabel: '7.41a',
+          comfortCore: null,
+          metaReferenceFor: _referenceFor,
+        );
 
-      expect(sanity.status, SessionPlanMetaSanityStatus.comfortFirst);
-      expect(sanity.message, 'This block is comfort-first, not meta-first.');
-    });
+        expect(sanity.status, SessionPlanMetaSanityStatus.comfortFirst);
+        expect(sanity.message, 'This block is comfort-first, not meta-first.');
+      },
+    );
 
     test('falls back calmly when the plan has incomplete meta coverage', () {
       final sanity = service.build(
@@ -68,7 +77,7 @@ void main() {
       expect(sanity.status, SessionPlanMetaSanityStatus.stale);
       expect(
         sanity.message,
-        'Meta reference is outdated. Lean on your own sample.',
+        'Patch 7.41a is behind supported patch 7.41b. Lean on your own sample.',
       );
     });
   });

@@ -50,6 +50,8 @@ class HeroBlockContext {
     required this.reviewedBlockGames,
     required this.trendStatus,
     required this.trendDetail,
+    required this.baselineWinRatePercentage,
+    required this.reviewedBlockWinRatePercentage,
   });
 
   final HeroLastPlanStatus lastPlanStatus;
@@ -57,6 +59,8 @@ class HeroBlockContext {
   final int reviewedBlockGames;
   final HeroBlockTrendStatus trendStatus;
   final String trendDetail;
+  final int? baselineWinRatePercentage;
+  final int? reviewedBlockWinRatePercentage;
 }
 
 class HeroDetail {
@@ -72,6 +76,7 @@ class HeroDetail {
     required this.averageMatchDuration,
     required this.tags,
     required this.coachingRead,
+    required this.rationaleLines,
     required this.trainingDecision,
     required this.blockContext,
     required this.metaSummary,
@@ -89,6 +94,7 @@ class HeroDetail {
   final Duration? averageMatchDuration;
   final List<HeroDetailTag> tags;
   final String coachingRead;
+  final List<String> rationaleLines;
   final HeroTrainingDecision trainingDecision;
   final HeroBlockContext? blockContext;
   final HeroMetaSummary metaSummary;

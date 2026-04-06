@@ -32,89 +32,126 @@ class NextGamesFocusGenerator {
     );
     final comfortHeroBlock =
         lockedHeroBlock ?? _namedHeroBlock(comfortCore, heroLabelFor);
+    final coachingStyle = trainingPreferences.coachingStyle;
 
     if (topInsight == null) {
       final scopeLabel = trustedRoleLabel ?? roleScopeLabel;
+      final baseAction = lockedHeroBlock == null
+          ? trustedRoleLabel == null
+                ? 'Play the next 5 games on $scopeLabel and no more than 2 heroes.'
+                : 'Play the next 5 games on $trustedRoleLabel and no more than 2 heroes.'
+          : 'Play the next 5 games on $scopeLabel and stay on ${lockedHeroBlock.actionLabel}.';
 
       return NextGamesFocus(
         title: 'Next 5 games focus',
-        action: lockedHeroBlock == null
-            ? trustedRoleLabel == null
-                  ? 'Play the next 5 games on $scopeLabel and no more than 2 heroes.'
-                  : 'Play the next 5 games on $trustedRoleLabel and no more than 2 heroes.'
-            : 'Play the next 5 games on $scopeLabel and stay on ${lockedHeroBlock.actionLabel}.',
+        action: _styleActionLabel(baseAction, coachingStyle),
         sourceLabel: 'No strong signal yet',
+        confidenceLabel: 'Conservative read',
+        reasonLabel: roleSummary.reasonLabel,
         heroBlock: lockedHeroBlock,
       );
     }
 
+    final confidenceLabel = '${topInsight.confidence.label} confidence';
+    final reasonLabel = topInsight.explanation;
+
     return switch (topInsight.type) {
       CoachingInsightType.earlyDeathRisk => NextGamesFocus(
         title: 'Next 5 games focus',
-        action: _earlyDeathAction(
-          trustedRoleLabel: trustedRoleLabel,
-          heroBlock: lockedHeroBlock,
+        action: _styleActionLabel(
+          _earlyDeathAction(
+            trustedRoleLabel: trustedRoleLabel,
+            heroBlock: lockedHeroBlock,
+          ),
+          coachingStyle,
         ),
         sourceLabel: topInsight.title,
+        confidenceLabel: confidenceLabel,
+        reasonLabel: reasonLabel,
         sourceType: topInsight.type,
         heroBlock: lockedHeroBlock,
       ),
       CoachingInsightType.specializationRecommendation => NextGamesFocus(
         title: 'Next 5 games focus',
-        action: lockedHeroBlock == null
-            ? trustedRoleLabel == null
-                  ? 'Queue $roleScopeLabel only for 5 games and cap the block at 3 heroes.'
-                  : 'Queue $trustedRoleLabel only for 5 games and cap the block at 3 heroes.'
-            : 'Queue $roleScopeLabel only for 5 games and stay on ${lockedHeroBlock.actionLabel}.',
+        action: _styleActionLabel(
+          lockedHeroBlock == null
+              ? trustedRoleLabel == null
+                    ? 'Queue $roleScopeLabel only for 5 games and cap the block at 3 heroes.'
+                    : 'Queue $trustedRoleLabel only for 5 games and cap the block at 3 heroes.'
+              : 'Queue $roleScopeLabel only for 5 games and stay on ${lockedHeroBlock.actionLabel}.',
+          coachingStyle,
+        ),
         sourceLabel: topInsight.title,
+        confidenceLabel: confidenceLabel,
+        reasonLabel: reasonLabel,
         sourceType: topInsight.type,
         heroBlock: lockedHeroBlock,
       ),
       CoachingInsightType.heroPoolSpread => NextGamesFocus(
         title: 'Next 5 games focus',
-        action: lockedHeroBlock == null
-            ? trustedRoleLabel == null
-                  ? 'Limit the next 5 games to 2 heroes so the sample stays easier to read.'
-                  : 'Limit the next 5 $trustedRoleLabel games to 2 heroes so the sample stays easier to read.'
-            : trustedRoleLabel == null
-            ? 'Keep the next 5 games on ${lockedHeroBlock.actionLabel} so the sample stays easier to read.'
-            : 'Keep the next 5 $trustedRoleLabel games on ${lockedHeroBlock.actionLabel} so the sample stays easier to read.',
+        action: _styleActionLabel(
+          lockedHeroBlock == null
+              ? trustedRoleLabel == null
+                    ? 'Limit the next 5 games to 2 heroes so the sample stays easier to read.'
+                    : 'Limit the next 5 $trustedRoleLabel games to 2 heroes so the sample stays easier to read.'
+              : trustedRoleLabel == null
+              ? 'Keep the next 5 games on ${lockedHeroBlock.actionLabel} so the sample stays easier to read.'
+              : 'Keep the next 5 $trustedRoleLabel games on ${lockedHeroBlock.actionLabel} so the sample stays easier to read.',
+          coachingStyle,
+        ),
         sourceLabel: topInsight.title,
+        confidenceLabel: confidenceLabel,
+        reasonLabel: reasonLabel,
         sourceType: topInsight.type,
         heroBlock: lockedHeroBlock,
       ),
       CoachingInsightType.comfortHeroDependence => NextGamesFocus(
         title: 'Next 5 games focus',
-        action: _comfortHeroAction(
-          trustedRoleLabel: trustedRoleLabel,
-          heroBlock: comfortHeroBlock,
-          comfortCore: comfortCore,
+        action: _styleActionLabel(
+          _comfortHeroAction(
+            trustedRoleLabel: trustedRoleLabel,
+            heroBlock: comfortHeroBlock,
+            comfortCore: comfortCore,
+          ),
+          coachingStyle,
         ),
         sourceLabel: topInsight.title,
+        confidenceLabel: confidenceLabel,
+        reasonLabel: reasonLabel,
         sourceType: topInsight.type,
         heroBlock: comfortHeroBlock,
       ),
       CoachingInsightType.weakRecentTrend => NextGamesFocus(
         title: 'Next 5 games focus',
-        action: lockedHeroBlock == null
-            ? trustedRoleLabel == null
-                  ? 'Stay on $roleScopeLabel for all 5 games and keep the hero block to 2 picks.'
-                  : 'Stay on $trustedRoleLabel for all 5 games and keep the hero block to 2 picks.'
-            : 'Stay on $roleScopeLabel for all 5 games and keep the block on ${lockedHeroBlock.actionLabel}.',
+        action: _styleActionLabel(
+          lockedHeroBlock == null
+              ? trustedRoleLabel == null
+                    ? 'Stay on $roleScopeLabel for all 5 games and keep the hero block to 2 picks.'
+                    : 'Stay on $trustedRoleLabel for all 5 games and keep the hero block to 2 picks.'
+              : 'Stay on $roleScopeLabel for all 5 games and keep the block on ${lockedHeroBlock.actionLabel}.',
+          coachingStyle,
+        ),
         sourceLabel: topInsight.title,
+        confidenceLabel: confidenceLabel,
+        reasonLabel: reasonLabel,
         sourceType: topInsight.type,
         heroBlock: lockedHeroBlock,
       ),
       CoachingInsightType.limitedConfidence => NextGamesFocus(
         title: 'Next 5 games focus',
-        action: lockedHeroBlock == null
-            ? trustedRoleLabel == null
-                  ? 'Play 5 more games on $roleScopeLabel and a 2-hero block before judging this sample.'
-                  : 'Play 5 more $trustedRoleLabel games on a 2-hero block before judging this sample.'
-            : trustedRoleLabel == null
-            ? 'Play 5 more games on $roleScopeLabel and stay on ${lockedHeroBlock.actionLabel} before judging this sample.'
-            : 'Play 5 more $trustedRoleLabel games on ${lockedHeroBlock.actionLabel} before judging this sample.',
+        action: _styleActionLabel(
+          lockedHeroBlock == null
+              ? trustedRoleLabel == null
+                    ? 'Play 5 more games on $roleScopeLabel and a 2-hero block before judging this sample.'
+                    : 'Play 5 more $trustedRoleLabel games on a 2-hero block before judging this sample.'
+              : trustedRoleLabel == null
+              ? 'Play 5 more games on $roleScopeLabel and stay on ${lockedHeroBlock.actionLabel} before judging this sample.'
+              : 'Play 5 more $trustedRoleLabel games on ${lockedHeroBlock.actionLabel} before judging this sample.',
+          coachingStyle,
+        ),
         sourceLabel: topInsight.title,
+        confidenceLabel: confidenceLabel,
+        reasonLabel: reasonLabel,
         sourceType: topInsight.type,
         heroBlock: lockedHeroBlock,
       ),
@@ -229,5 +266,69 @@ class NextGamesFocusGenerator {
                 ComfortCoreConclusionType.successInsideCore ||
             comfortCore.conclusionType ==
                 ComfortCoreConclusionType.outsideWeaker);
+  }
+
+  String _styleActionLabel(
+    String baseAction,
+    TrainingCoachingStyle coachingStyle,
+  ) {
+    return switch (coachingStyle) {
+      TrainingCoachingStyle.auto => baseAction,
+      TrainingCoachingStyle.steady => _steadyActionLabel(baseAction),
+      TrainingCoachingStyle.direct => _directActionLabel(baseAction),
+    };
+  }
+
+  String _steadyActionLabel(String baseAction) {
+    return switch (baseAction) {
+      _ when baseAction.startsWith('Play your next 5 games on ') =>
+        baseAction.replaceFirst('Play your next 5 games on ', 'Keep the next block steady on '),
+      _ when baseAction.startsWith('Keep deaths to 6 or fewer') =>
+        baseAction.replaceFirst('Keep deaths to 6 or fewer', 'Keep the block steady and deaths to 6 or fewer'),
+      _ when baseAction.startsWith('Limit the next 5') =>
+        baseAction.replaceFirst('Limit', 'Keep').replaceFirst(
+          'to 2 heroes so the sample stays easier to read.',
+          'on 2 heroes so the sample stays easier to read.',
+        ),
+      _ when baseAction.startsWith('Play 5 more') =>
+        baseAction.replaceFirst('Play 5 more', 'Keep the next block steady with 5 more'),
+      _ when baseAction.startsWith('Play the next 5 games on') =>
+        baseAction.replaceFirst('Play the next 5 games on', 'Keep the next block steady on'),
+      _ => baseAction,
+    };
+  }
+
+  String _directActionLabel(String baseAction) {
+    return switch (baseAction) {
+      _ when baseAction.startsWith('Play your next 5 games on ') =>
+        baseAction.replaceFirst('Play your next 5 games on ', 'Run the next block on '),
+      _ when baseAction.startsWith('Keep deaths to 6 or fewer') =>
+        baseAction.replaceFirst('Keep deaths to 6 or fewer', 'Cap deaths at 6'),
+      _ when baseAction.startsWith('Limit the next 5') =>
+        baseAction.replaceFirst(
+          'Limit the next 5 games to 2 heroes so the sample stays easier to read.',
+          'Lock the next 5 games to 2 heroes.',
+        ).replaceFirst(
+          'Limit the next 5 Carry games to 2 heroes so the sample stays easier to read.',
+          'Lock the next 5 Carry games to 2 heroes.',
+        ).replaceFirst(
+          'Limit the next 5 Mid games to 2 heroes so the sample stays easier to read.',
+          'Lock the next 5 Mid games to 2 heroes.',
+        ).replaceFirst(
+          'Limit the next 5 Offlane games to 2 heroes so the sample stays easier to read.',
+          'Lock the next 5 Offlane games to 2 heroes.',
+        ).replaceFirst(
+          'Limit the next 5 Soft Support games to 2 heroes so the sample stays easier to read.',
+          'Lock the next 5 Soft Support games to 2 heroes.',
+        ).replaceFirst(
+          'Limit the next 5 Hard Support games to 2 heroes so the sample stays easier to read.',
+          'Lock the next 5 Hard Support games to 2 heroes.',
+        ),
+      _ when baseAction.startsWith('Play 5 more') =>
+        baseAction.replaceFirst('Play 5 more', 'Run 5 more'),
+      _ when baseAction.startsWith('Play the next 5 games on') =>
+        baseAction.replaceFirst('Play the next 5 games on', 'Run the next block on'),
+      _ => baseAction,
+    };
   }
 }

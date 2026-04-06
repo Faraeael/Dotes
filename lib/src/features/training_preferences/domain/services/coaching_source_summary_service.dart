@@ -20,6 +20,15 @@ class CoachingSourceSummaryService {
     if (preferredRole != null) {
       detailParts.add('Role: ${preferredRole.label}');
     }
+    if (preferences.focusPriority != TrainingFocusPriority.auto) {
+      detailParts.add('Priority: ${preferences.focusPriority.label}');
+    }
+    if (preferences.coachingStyle != TrainingCoachingStyle.auto) {
+      detailParts.add('Style: ${preferences.coachingStyle.label}');
+    }
+    if (preferences.queuePreference != TrainingQueuePreference.auto) {
+      detailParts.add('Queue: ${preferences.queuePreference.label}');
+    }
 
     final heroBlockLabel = _heroBlockLabel(
       preferences.activeLockedHeroIds,
@@ -27,6 +36,10 @@ class CoachingSourceSummaryService {
     );
     if (heroBlockLabel != null) {
       detailParts.add('Hero block: $heroBlockLabel');
+    }
+    final coachingNote = preferences.trimmedCoachingNote;
+    if (coachingNote != null) {
+      detailParts.add('Goal: $coachingNote');
     }
 
     return CoachingSourceSummary(

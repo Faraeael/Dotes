@@ -35,9 +35,17 @@ void main() {
         previousCheckpoint: null,
       );
 
-      expect(verdict.biggestLeak?.message, 'Your recent pool is still too wide.');
+      expect(
+        verdict.biggestLeak?.message,
+        'Your recent pool is still too wide.',
+      );
       expect(verdict.biggestEdge, isNull);
       expect(verdict.fallbackMessage, isNull);
+      expect(verdict.confidenceLabel, 'Conservative read');
+      expect(
+        verdict.reasonLabel,
+        'This verdict is based on your strongest recent-match signal and stays conservative when the sample is broad.',
+      );
     });
 
     test('returns a strong positive signal only', () {
@@ -59,7 +67,8 @@ void main() {
         progressCheck: null,
         followThroughCheck: FocusFollowThroughCheck.ready(
           status: FocusFollowThroughStatus.onTrack,
-          detail: 'You stayed inside the Slardar + Mars block in 4 of the last 5 games.',
+          detail:
+              'You stayed inside the Slardar + Mars block in 4 of the last 5 games.',
           checkpointSavedAt: DateTime.utc(2025, 3, 21),
           previousFocusLabel: 'Slardar + Mars block',
           comparisonLabel:
@@ -93,7 +102,8 @@ void main() {
         ],
         nextGamesFocus: const NextGamesFocus(
           title: 'Next 5 games focus',
-          action: 'Stay inside your top 2 hero block until the trend stabilizes.',
+          action:
+              'Stay inside your top 2 hero block until the trend stabilizes.',
           sourceLabel: 'Comfort hero dependence',
           sourceType: CoachingInsightType.comfortHeroDependence,
         ),
@@ -113,7 +123,10 @@ void main() {
         previousCheckpoint: null,
       );
 
-      expect(verdict.biggestLeak?.message, 'Your recent pool is still too wide.');
+      expect(
+        verdict.biggestLeak?.message,
+        'Your recent pool is still too wide.',
+      );
       expect(
         verdict.biggestEdge?.message,
         'Your best results are inside a small comfort core.',
@@ -131,7 +144,8 @@ void main() {
         ],
         nextGamesFocus: const NextGamesFocus(
           title: 'Next 5 games focus',
-          action: 'Play 5 more games on one role and a 2-hero block before judging this sample.',
+          action:
+              'Play 5 more games on one role and a 2-hero block before judging this sample.',
           sourceLabel: 'Limited confidence',
           sourceType: CoachingInsightType.limitedConfidence,
         ),
@@ -151,6 +165,11 @@ void main() {
         verdict.fallbackMessage,
         'Current sample is still too noisy for a strong verdict.',
       );
+      expect(verdict.confidenceLabel, 'Limited confidence');
+      expect(
+        verdict.reasonLabel,
+        'Current sample is still noisy, so the verdict is directional rather than final.',
+      );
     });
 
     test('keeps verdict selection deterministic', () {
@@ -163,7 +182,8 @@ void main() {
         ],
         nextGamesFocus: const NextGamesFocus(
           title: 'Next 5 games focus',
-          action: 'Stay inside your top 2 hero block until the trend stabilizes.',
+          action:
+              'Stay inside your top 2 hero block until the trend stabilizes.',
           sourceLabel: 'Comfort hero dependence',
           sourceType: CoachingInsightType.comfortHeroDependence,
         ),
@@ -191,7 +211,8 @@ void main() {
         ],
         nextGamesFocus: const NextGamesFocus(
           title: 'Next 5 games focus',
-          action: 'Stay inside your top 2 hero block until the trend stabilizes.',
+          action:
+              'Stay inside your top 2 hero block until the trend stabilizes.',
           sourceLabel: 'Comfort hero dependence',
           sourceType: CoachingInsightType.comfortHeroDependence,
         ),
@@ -234,7 +255,9 @@ ComfortCoreSummary _comfortCore(ComfortCoreConclusionType conclusionType) {
   return ComfortCoreSummary(
     conclusionType: conclusionType,
     conclusion: 'Conclusion',
-    totalMatches: conclusionType == ComfortCoreConclusionType.tinySample ? 4 : 7,
+    totalMatches: conclusionType == ComfortCoreConclusionType.tinySample
+        ? 4
+        : 7,
     minimumMatches: 5,
     topHeroes: const [
       ComfortCoreHeroUsage(heroId: 28, matches: 3),
@@ -247,9 +270,7 @@ ComfortCoreSummary _comfortCore(ComfortCoreConclusionType conclusionType) {
   );
 }
 
-CoachingCheckpoint _checkpoint({
-  CoachingCheckpointHeroBlock? focusHeroBlock,
-}) {
+CoachingCheckpoint _checkpoint({CoachingCheckpointHeroBlock? focusHeroBlock}) {
   return CoachingCheckpoint(
     accountId: 86745912,
     savedAt: DateTime.utc(2025, 3, 21),

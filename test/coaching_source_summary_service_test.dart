@@ -51,6 +51,54 @@ void main() {
       expect(summary.headline, 'Coaching source: Manual setup');
       expect(summary.detail, 'Role: Offlane | Hero block: Slardar');
     });
+
+    test('manual note is included in the setup summary', () {
+      final summary = service.build(
+        const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          coachingNote: 'Practice calmer lane exits.',
+        ),
+      );
+
+      expect(summary.headline, 'Coaching source: Manual setup');
+      expect(summary.detail, 'Goal: Practice calmer lane exits.');
+    });
+
+    test('manual focus priority is included in the setup summary', () {
+      final summary = service.build(
+        const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          focusPriority: TrainingFocusPriority.reduceDeaths,
+        ),
+      );
+
+      expect(summary.headline, 'Coaching source: Manual setup');
+      expect(summary.detail, 'Priority: Reduce deaths');
+    });
+
+    test('manual coaching style is included in the setup summary', () {
+      final summary = service.build(
+        const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          coachingStyle: TrainingCoachingStyle.direct,
+        ),
+      );
+
+      expect(summary.headline, 'Coaching source: Manual setup');
+      expect(summary.detail, 'Style: Direct');
+    });
+
+    test('manual queue preference is included in the setup summary', () {
+      final summary = service.build(
+        const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          queuePreference: TrainingQueuePreference.soloOnly,
+        ),
+      );
+
+      expect(summary.headline, 'Coaching source: Manual setup');
+      expect(summary.detail, 'Queue: Solo only');
+    });
   });
 }
 

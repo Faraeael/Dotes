@@ -10,34 +10,37 @@ void main() {
   const service = HeroCompareService();
 
   group('HeroCompareService', () {
-    test('prefers the better comfort pick when one hero is clearly comfort-backed', () {
-      final compare = service.build(
-        primaryHero: _detail(
-          heroName: 'Slardar',
-          matches: 5,
-          wins: 4,
-          losses: 1,
-          winRate: 80,
-          averageDeaths: 4.0,
-          tags: const [HeroDetailTag.comfortCore],
-          trainingDecision: HeroTrainingDecision.goodBackupHero,
-        ),
-        secondaryHero: _detail(
-          heroName: 'Sven',
-          matches: 5,
-          wins: 2,
-          losses: 3,
-          winRate: 40,
-          averageDeaths: 6.0,
-        ),
-      );
+    test(
+      'prefers the better comfort pick when one hero is clearly comfort-backed',
+      () {
+        final compare = service.build(
+          primaryHero: _detail(
+            heroName: 'Slardar',
+            matches: 5,
+            wins: 4,
+            losses: 1,
+            winRate: 80,
+            averageDeaths: 4.0,
+            tags: const [HeroDetailTag.comfortCore],
+            trainingDecision: HeroTrainingDecision.goodBackupHero,
+          ),
+          secondaryHero: _detail(
+            heroName: 'Sven',
+            matches: 5,
+            wins: 2,
+            losses: 3,
+            winRate: 40,
+            averageDeaths: 6.0,
+          ),
+        );
 
-      expect(compare.verdict.type, HeroCompareVerdictType.betterComfortPick);
-      expect(
-        compare.verdict.message,
-        'Slardar is the better comfort pick right now.',
-      );
-    });
+        expect(compare.verdict.type, HeroCompareVerdictType.betterComfortPick);
+        expect(
+          compare.verdict.message,
+          'Slardar is the better comfort pick right now.',
+        );
+      },
+    );
 
     test('calls the clearly better performer the stronger block pick', () {
       final compare = service.build(
@@ -178,9 +181,11 @@ HeroDetail _detail({
     averageMatchDuration: const Duration(minutes: 35),
     tags: tags,
     coachingRead: 'Read',
+    rationaleLines: const ['Reason'],
     trainingDecision: trainingDecision,
     blockContext: null,
-    metaSummary: metaSummary ??
+    metaSummary:
+        metaSummary ??
         const HeroMetaSummary(
           reference: null,
           freshness: null,

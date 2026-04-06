@@ -44,6 +44,12 @@ void main() {
         history.entries.last.resultSummary,
         'Deaths improved from 7.2 to 5.8.',
       );
+      expect(history.trend.headline, 'The latest block drifted off track');
+      expect(history.trend.completedCycles, 2);
+      expect(history.trend.onTrackCount, 1);
+      expect(history.trend.offTrackCount, 1);
+      expect(history.trend.currentStreakCount, 1);
+      expect(history.trend.currentStreakOutcome, TrainingCycleOutcome.offTrack);
     });
 
     test('generates named hero-block summaries', () {
@@ -94,62 +100,125 @@ void main() {
       expect(history.entries, isEmpty);
       expect(
         history.fallbackMessage,
-        'No completed cycles yet \u2014 finish your first 5-game block to see history here.',
+        'No completed cycles yet - finish your first 5-game block to see history here.',
       );
+      expect(history.trend.headline, 'No completed cycles yet');
+      expect(history.trend.completedCycles, 0);
     });
 
-    test('populates deathsAverage and winRatePercent when matchesAnalyzed >= 5',
-        () {
+    test(
+      'populates deathsAverage and winRatePercent when matchesAnalyzed >= 5',
+      () {
+        final history = service.build([
+          _checkpoint(
+            savedAt: DateTime.utc(2025, 3, 20),
+            focusSourceLabel: 'Early death risk',
+            topInsightType: CoachingInsightType.earlyDeathRisk,
+            averageDeaths: 7.2,
+            matchesAnalyzed: 10,
+            wins: 6,
+          ),
+          _checkpoint(
+            savedAt: DateTime.utc(2025, 3, 21),
+            focusSourceLabel: 'Early death risk',
+            topInsightType: CoachingInsightType.earlyDeathRisk,
+            averageDeaths: 5.8,
+            matchesAnalyzed: 10,
+            wins: 7,
+          ),
+        ]);
+
+        expect(history.entries, hasLength(1));
+        expect(history.entries.first.deathsAverage, closeTo(5.8, 0.001));
+        expect(history.entries.first.winRatePercent, closeTo(70.0, 0.001));
+      },
+    );
+
+    test(
+      'deathsAverage and winRatePercent are null when matchesAnalyzed < 5',
+      () {
+        final history = service.build([
+          _checkpoint(
+            savedAt: DateTime.utc(2025, 3, 20),
+            focusSourceLabel: 'Limited confidence',
+            topInsightType: CoachingInsightType.limitedConfidence,
+            matchesAnalyzed: 4,
+            wins: 2,
+            losses: 2,
+            averageDeaths: 6.0,
+          ),
+          _checkpoint(
+            savedAt: DateTime.utc(2025, 3, 21),
+            focusSourceLabel: 'Limited confidence',
+            topInsightType: CoachingInsightType.limitedConfidence,
+            matchesAnalyzed: 4,
+            wins: 3,
+            losses: 1,
+            averageDeaths: 5.0,
+          ),
+        ]);
+
+        expect(history.entries, hasLength(1));
+        expect(history.entries.first.deathsAverage, isNull);
+        expect(history.entries.first.winRatePercent, isNull);
+      },
+    );
+
+    test('marks off-track streaks clearly in the trend summary', () {
       final history = service.build([
         _checkpoint(
           savedAt: DateTime.utc(2025, 3, 20),
-          focusSourceLabel: 'Early death risk',
-          topInsightType: CoachingInsightType.earlyDeathRisk,
-          averageDeaths: 7.2,
-          matchesAnalyzed: 10,
-          wins: 6,
+          focusSourceLabel: 'Hero block',
+          topInsightType: CoachingInsightType.heroPoolSpread,
+          uniqueHeroesPlayed: 2,
+          focusHeroBlock: const CoachingCheckpointHeroBlock(
+            heroIds: [28, 129],
+            heroLabels: ['Slardar', 'Mars'],
+            wins: 3,
+            losses: 2,
+          ),
         ),
         _checkpoint(
           savedAt: DateTime.utc(2025, 3, 21),
-          focusSourceLabel: 'Early death risk',
-          topInsightType: CoachingInsightType.earlyDeathRisk,
-          averageDeaths: 5.8,
-          matchesAnalyzed: 10,
-          wins: 7,
+          focusSourceLabel: 'Hero block',
+          topInsightType: CoachingInsightType.heroPoolSpread,
+          recentMatchesWindow: const [
+            CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
+            CoachingCheckpointMatchSummary(heroId: 54, didWin: true),
+            CoachingCheckpointMatchSummary(heroId: 55, didWin: false),
+            CoachingCheckpointMatchSummary(heroId: 56, didWin: false),
+            CoachingCheckpointMatchSummary(heroId: 57, didWin: false),
+          ],
+        ),
+        _checkpoint(
+          savedAt: DateTime.utc(2025, 3, 22),
+          focusSourceLabel: 'Hero block',
+          topInsightType: CoachingInsightType.heroPoolSpread,
+          focusHeroBlock: const CoachingCheckpointHeroBlock(
+            heroIds: [28, 129],
+            heroLabels: ['Slardar', 'Mars'],
+            wins: 2,
+            losses: 3,
+          ),
+        ),
+        _checkpoint(
+          savedAt: DateTime.utc(2025, 3, 23),
+          focusSourceLabel: 'Hero block',
+          topInsightType: CoachingInsightType.heroPoolSpread,
+          recentMatchesWindow: const [
+            CoachingCheckpointMatchSummary(heroId: 53, didWin: true),
+            CoachingCheckpointMatchSummary(heroId: 54, didWin: true),
+            CoachingCheckpointMatchSummary(heroId: 55, didWin: false),
+            CoachingCheckpointMatchSummary(heroId: 56, didWin: false),
+            CoachingCheckpointMatchSummary(heroId: 57, didWin: false),
+          ],
         ),
       ]);
 
-      expect(history.entries, hasLength(1));
-      expect(history.entries.first.deathsAverage, closeTo(5.8, 0.001));
-      expect(history.entries.first.winRatePercent, closeTo(70.0, 0.001));
-    });
-
-    test('deathsAverage and winRatePercent are null when matchesAnalyzed < 5',
-        () {
-      final history = service.build([
-        _checkpoint(
-          savedAt: DateTime.utc(2025, 3, 20),
-          focusSourceLabel: 'Limited confidence',
-          topInsightType: CoachingInsightType.limitedConfidence,
-          matchesAnalyzed: 4,
-          wins: 2,
-          losses: 2,
-          averageDeaths: 6.0,
-        ),
-        _checkpoint(
-          savedAt: DateTime.utc(2025, 3, 21),
-          focusSourceLabel: 'Limited confidence',
-          topInsightType: CoachingInsightType.limitedConfidence,
-          matchesAnalyzed: 4,
-          wins: 3,
-          losses: 1,
-          averageDeaths: 5.0,
-        ),
-      ]);
-
-      expect(history.entries, hasLength(1));
-      expect(history.entries.first.deathsAverage, isNull);
-      expect(history.entries.first.winRatePercent, isNull);
+      expect(history.trend.headline, 'The latest block drifted off track');
+      expect(history.trend.offTrackCount, 2);
+      expect(history.trend.currentStreakCount, 1);
+      expect(history.trend.currentStreakOutcome, TrainingCycleOutcome.offTrack);
     });
 
     test('keeps output deterministic for the same checkpoint list', () {
@@ -181,6 +250,8 @@ void main() {
         secondPass.entries.first.resultSummary,
       );
       expect(firstPass.entries.first.outcome, secondPass.entries.first.outcome);
+      expect(firstPass.trend.headline, secondPass.trend.headline);
+      expect(firstPass.trend.detail, secondPass.trend.detail);
     });
   });
 }

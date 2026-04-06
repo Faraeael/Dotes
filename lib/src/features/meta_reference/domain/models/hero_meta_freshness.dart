@@ -20,4 +20,8 @@ class HeroMetaFreshness {
 
   bool get isCurrent => status == HeroMetaFreshnessStatus.current;
   bool get isOutdated => status == HeroMetaFreshnessStatus.outdated;
+
+  String get detailLabel => isCurrent
+      ? 'Patch $metaPatchLabel matches the supported patch.'
+      : 'Patch $metaPatchLabel is behind supported patch $currentSupportedPatchLabel.';
 }

@@ -73,6 +73,8 @@ void main() {
         focus.action,
         'Play 5 more games on one role and a 2-hero block before judging this sample.',
       );
+      expect(focus.confidenceLabel, 'Low confidence');
+      expect(focus.reasonLabel, 'Sample is still thin.');
       expect(focus.heroBlock, isNull);
     });
 
@@ -174,6 +176,60 @@ void main() {
       expect(focus.heroBlock!.heroIds, [28, 129]);
       expect(focus.heroBlock!.wins, 1);
       expect(focus.heroBlock!.losses, 1);
+    });
+
+    test('uses the role summary reason when there is no strong signal yet', () {
+      final focus = generator.generate(
+        const [],
+        _roleSummary(readType: SampleRoleReadType.smallSample),
+      );
+
+      expect(focus.confidenceLabel, 'Conservative read');
+      expect(
+        focus.reasonLabel,
+        'This sample is still small, so the current role estimate can move quickly over the next few matches.',
+      );
+    });
+
+    test('steady coaching style softens the next-games focus wording', () {
+      final focus = generator.generate(
+        [_limitedConfidenceInsight()],
+        _roleSummary(readType: SampleRoleReadType.smallSample),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.tinySample,
+          topHeroes: const [],
+        ),
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          coachingStyle: TrainingCoachingStyle.steady,
+        ),
+      );
+
+      expect(
+        focus.action,
+        'Keep the next block steady with 5 more games on one role and a 2-hero block before judging this sample.',
+      );
+    });
+
+    test('direct coaching style shortens the next-games focus wording', () {
+      final focus = generator.generate(
+        [_comfortInsight()],
+        _clearRoleSummary(),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.successInsideCore,
+          topHeroes: const [
+            ComfortCoreHeroUsage(heroId: 28, matches: 3),
+            ComfortCoreHeroUsage(heroId: 129, matches: 2),
+          ],
+        ),
+        heroLabelFor: _heroLabelFor,
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          coachingStyle: TrainingCoachingStyle.direct,
+        ),
+      );
+
+      expect(focus.action, 'Run the next block on Slardar and Mars.');
     });
   });
 }

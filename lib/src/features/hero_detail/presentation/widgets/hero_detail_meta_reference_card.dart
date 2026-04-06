@@ -17,6 +17,7 @@ class HeroDetailMetaReferenceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final metaSummary = detail.metaSummary;
     final reference = metaSummary.reference;
+    final freshness = metaSummary.freshness;
 
     return Card(
       child: Padding(
@@ -43,9 +44,19 @@ class HeroDetailMetaReferenceCard extends StatelessWidget {
               AppMetricGrid(
                 children: [
                   AppMetricTile(label: 'Patch', value: reference.patchLabel),
-                  AppMetricTile(label: 'Common role', value: reference.roleLabel),
+                  AppMetricTile(
+                    label: 'Common role',
+                    value: reference.roleLabel,
+                  ),
                 ],
               ),
+              if (freshness != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  freshness.detailLabel,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
               const SizedBox(height: 16),
               _MetaLine(
                 label: 'Core item direction',

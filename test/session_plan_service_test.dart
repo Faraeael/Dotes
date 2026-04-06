@@ -182,6 +182,196 @@ void main() {
       expect(plan.roleBlockKey, 'mid');
       expect(plan.usesManualRoleSetup, isTrue);
     });
+
+    test('manual focus priority can bias the plan toward deaths', () {
+      final plan = service.build(
+        verdict: const DashboardVerdict(
+          biggestLeak: DashboardVerdictLine(
+            message: 'Your recent pool is still too wide.',
+          ),
+        ),
+        nextGamesFocus: const NextGamesFocus(
+          title: 'Next 5 games focus',
+          action:
+              'Limit the next 5 games to 2 heroes so the sample stays easier to read.',
+          sourceLabel: 'Hero pool spread',
+          sourceType: CoachingInsightType.heroPoolSpread,
+        ),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.successInsideCore,
+        ),
+        roleSummary: _trustedRoleSummary(),
+        followThroughCheck: null,
+        heroLabelFor: _heroLabelFor,
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          focusPriority: TrainingFocusPriority.reduceDeaths,
+        ),
+      );
+
+      expect(plan.target, 'keep deaths to 6 or fewer');
+      expect(plan.targetType, SessionPlanTargetType.deaths);
+    });
+
+    test('manual focus priority can bias the plan toward comfort block', () {
+      final plan = service.build(
+        verdict: const DashboardVerdict(
+          biggestLeak: DashboardVerdictLine(
+            message: 'Deaths are still above the current focus target.',
+          ),
+        ),
+        nextGamesFocus: const NextGamesFocus(
+          title: 'Next 5 games focus',
+          action:
+              'Keep deaths to 6 or fewer in each of the next 5 Carry games.',
+          sourceLabel: 'Early death risk',
+          sourceType: CoachingInsightType.earlyDeathRisk,
+          heroBlock: NextGamesFocusHeroBlock(
+            heroIds: [28, 129],
+            heroLabels: ['Slardar', 'Mars'],
+            wins: 4,
+            losses: 1,
+          ),
+        ),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.successInsideCore,
+        ),
+        roleSummary: _trustedRoleSummary(),
+        followThroughCheck: null,
+        heroLabelFor: _heroLabelFor,
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          focusPriority: TrainingFocusPriority.stayInComfortBlock,
+        ),
+      );
+
+      expect(plan.target, 'stay inside the block');
+      expect(plan.targetType, SessionPlanTargetType.comfortBlock);
+    });
+
+    test('steady coaching style softens the target wording', () {
+      final plan = service.build(
+        verdict: const DashboardVerdict(
+          biggestLeak: DashboardVerdictLine(
+            message: 'Deaths are still above the current focus target.',
+          ),
+        ),
+        nextGamesFocus: const NextGamesFocus(
+          title: 'Next 5 games focus',
+          action:
+              'Keep deaths to 6 or fewer in each of the next 5 Carry games.',
+          sourceLabel: 'Early death risk',
+          sourceType: CoachingInsightType.earlyDeathRisk,
+        ),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.successInsideCore,
+        ),
+        roleSummary: _trustedRoleSummary(),
+        followThroughCheck: null,
+        heroLabelFor: _heroLabelFor,
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          coachingStyle: TrainingCoachingStyle.steady,
+        ),
+      );
+
+      expect(plan.target, 'keep the block steady and deaths to 6 or fewer');
+      expect(plan.targetType, SessionPlanTargetType.deaths);
+    });
+
+    test('direct coaching style makes the target wording shorter', () {
+      final plan = service.build(
+        verdict: const DashboardVerdict(
+          biggestLeak: DashboardVerdictLine(
+            message: 'Your recent pool is still too wide.',
+          ),
+        ),
+        nextGamesFocus: const NextGamesFocus(
+          title: 'Next 5 games focus',
+          action:
+              'Limit the next 5 games to 2 heroes so the sample stays easier to read.',
+          sourceLabel: 'Hero pool spread',
+          sourceType: CoachingInsightType.heroPoolSpread,
+        ),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.successInsideCore,
+        ),
+        roleSummary: _trustedRoleSummary(),
+        followThroughCheck: null,
+        heroLabelFor: _heroLabelFor,
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          coachingStyle: TrainingCoachingStyle.direct,
+        ),
+      );
+
+      expect(plan.target, 'lock the next block to these 2 heroes');
+      expect(plan.targetType, SessionPlanTargetType.heroPool);
+    });
+
+    test('manual queue preference can bias the session queue to solo', () {
+      final plan = service.build(
+        verdict: const DashboardVerdict(
+          biggestEdge: DashboardVerdictLine(
+            message: 'Your best results are inside a small comfort core.',
+          ),
+        ),
+        nextGamesFocus: const NextGamesFocus(
+          title: 'Next 5 games focus',
+          action: 'Play your next 5 games on Slardar and Mars.',
+          sourceLabel: 'Comfort hero dependence',
+          sourceType: CoachingInsightType.comfortHeroDependence,
+          heroBlock: NextGamesFocusHeroBlock(
+            heroIds: [28, 129],
+            heroLabels: ['Slardar', 'Mars'],
+            wins: 4,
+            losses: 1,
+          ),
+        ),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.successInsideCore,
+        ),
+        roleSummary: _trustedRoleSummary(),
+        followThroughCheck: null,
+        heroLabelFor: _heroLabelFor,
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          queuePreference: TrainingQueuePreference.soloOnly,
+        ),
+      );
+
+      expect(plan.queue, 'Carry only, solo queue');
+    });
+
+    test('manual queue preference can bias the session queue to party', () {
+      final plan = service.build(
+        verdict: const DashboardVerdict(
+          biggestLeak: DashboardVerdictLine(
+            message: 'Current sample is still too noisy for a strong verdict.',
+          ),
+        ),
+        nextGamesFocus: const NextGamesFocus(
+          title: 'Next 5 games focus',
+          action:
+              'Play 5 more games on one role and a 2-hero block before judging this sample.',
+          sourceLabel: 'Limited confidence',
+          sourceType: CoachingInsightType.limitedConfidence,
+        ),
+        comfortCore: _comfortCore(
+          conclusionType: ComfortCoreConclusionType.tinySample,
+        ),
+        roleSummary: _mixedRoleSummary(),
+        followThroughCheck: null,
+        heroLabelFor: _heroLabelFor,
+        trainingPreferences: const TrainingPreferences(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          preferredRole: TrainingRolePreference.mid,
+          queuePreference: TrainingQueuePreference.partyOnly,
+        ),
+      );
+
+      expect(plan.queue, 'Mid only, party queue');
+    });
   });
 }
 

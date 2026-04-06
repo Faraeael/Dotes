@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_reason_list.dart';
 import '../../../../app/widgets/app_card_header.dart';
 import '../../../../app/widgets/app_metric_grid.dart';
 import '../../../../app/widgets/app_metric_tile.dart';
@@ -15,6 +16,7 @@ class ImportedSampleCard extends StatelessWidget {
     required this.mostPlayedHeroLabel,
     required this.primaryRoleLabel,
     required this.roleReasonLabel,
+    required this.roleRationaleLines,
     required this.roleMixDetailsLabel,
     required this.roleReadLabel,
     required this.primaryRoleAdherenceLabel,
@@ -30,6 +32,7 @@ class ImportedSampleCard extends StatelessWidget {
   final String? mostPlayedHeroLabel;
   final String primaryRoleLabel;
   final String roleReasonLabel;
+  final List<String> roleRationaleLines;
   final String? roleMixDetailsLabel;
   final String roleReadLabel;
   final String? primaryRoleAdherenceLabel;
@@ -73,10 +76,7 @@ class ImportedSampleCard extends StatelessWidget {
             ),
             if (topHeroes.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text(
-                'Top heroes',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              Text('Top heroes', style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 4),
               AppMetricGrid(
                 children: [
@@ -95,8 +95,15 @@ class ImportedSampleCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(roleReasonLabel, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 12),
+            Text(
+              'Why this role read',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            AppReasonList(reasons: roleRationaleLines),
             if (roleMixDetailsLabel != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
                 roleMixDetailsLabel!,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(

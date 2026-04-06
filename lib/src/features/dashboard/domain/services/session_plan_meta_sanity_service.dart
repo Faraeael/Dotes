@@ -46,14 +46,25 @@ class SessionPlanMetaSanityService {
           ),
         )
         .toList(growable: false);
-    if (freshness.any((item) => item.status == HeroMetaFreshnessStatus.outdated)) {
-      return const SessionPlanMetaSanity(
+
+    HeroMetaFreshness? staleFreshness;
+    for (final item in freshness) {
+      if (item.isOutdated) {
+        staleFreshness = item;
+        break;
+      }
+    }
+
+    if (staleFreshness != null) {
+      return SessionPlanMetaSanity(
         status: SessionPlanMetaSanityStatus.stale,
-        message: 'Meta reference is outdated. Lean on your own sample.',
+        message: '${staleFreshness.detailLabel} Lean on your own sample.',
       );
     }
 
-    final highMetaCount = references.where((item) => item.tier.isHighMeta).length;
+    final highMetaCount = references
+        .where((item) => item.tier.isHighMeta)
+        .length;
     if (highMetaCount == references.length) {
       return const SessionPlanMetaSanity(
         status: SessionPlanMetaSanityStatus.metaAligned,

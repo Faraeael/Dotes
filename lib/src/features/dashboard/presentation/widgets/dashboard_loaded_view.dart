@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../checkpoints/domain/models/training_block_action.dart';
+
 import '../../../checkpoints/domain/models/checkpoint_save_status_summary.dart';
+import '../../../checkpoints/domain/models/training_block_action.dart';
 import '../../../insights/domain/models/coaching_insight.dart';
 import '../../../insights/domain/models/next_games_focus.dart';
 import '../../../insights/presentation/widgets/next_games_focus_card.dart';
@@ -12,9 +13,10 @@ import '../../../training_preferences/domain/models/coaching_source_summary.dart
 import '../../../training_preferences/presentation/widgets/training_setup_card.dart';
 import '../../domain/models/block_review.dart';
 import '../../domain/models/comfort_core_summary.dart';
-import '../../domain/models/dashboard_verdict.dart';
 import '../../domain/models/dashboard_onboarding_guide.dart';
+import '../../domain/models/dashboard_verdict.dart';
 import '../../domain/models/end_block_summary.dart';
+import '../../domain/models/saved_block_summary.dart';
 import '../../domain/models/session_plan.dart';
 import '../../domain/models/session_plan_meta_sanity.dart';
 import '../../domain/models/training_history.dart';
@@ -36,12 +38,14 @@ class DashboardLoadedView extends StatelessWidget {
     required this.sampleSummary,
     required this.coachingInsights,
     required this.trainingHistory,
+    required this.savedBlockSummaries,
     required this.detailsExpanded,
     required this.onToggleDetails,
     required this.onOpenHeroDetail,
     required this.onEditTrainingPreferences,
     required this.onEditTesterFeedback,
     required this.onShowPlaytestSummary,
+    required this.onCopySavedSummary,
     required this.onStartTrainingBlock,
     required this.onDismissOnboarding,
     required this.onShowHowItWorks,
@@ -69,26 +73,34 @@ class DashboardLoadedView extends StatelessWidget {
   final ImportedSampleSummary sampleSummary;
   final List<CoachingInsight> coachingInsights;
   final TrainingHistory? trainingHistory;
+  final List<SavedBlockSummary> savedBlockSummaries;
   final bool detailsExpanded;
   final VoidCallback onToggleDetails;
   final ValueChanged<int> onOpenHeroDetail;
   final VoidCallback onEditTrainingPreferences;
   final VoidCallback onEditTesterFeedback;
   final VoidCallback onShowPlaytestSummary;
-  final VoidCallback onStartTrainingBlock, onDismissOnboarding;
-  final VoidCallback onShowHowItWorks, onGoToImport;
+  final ValueChanged<String> onCopySavedSummary;
+  final VoidCallback onStartTrainingBlock;
+  final VoidCallback onDismissOnboarding;
+  final VoidCallback onShowHowItWorks;
+  final VoidCallback onGoToImport;
   final VoidCallback? onSaveEndBlockSummary;
-  final DashboardVerdict? dashboardVerdict; final BlockReview? blockReview;
+  final DashboardVerdict? dashboardVerdict;
+  final BlockReview? blockReview;
   final EndBlockSummary? endBlockSummary;
-  final SessionPlan? sessionPlan; final NextGamesFocus? nextGamesFocus;
+  final SessionPlan? sessionPlan;
+  final NextGamesFocus? nextGamesFocus;
   final SessionPlanMetaSanity? sessionPlanMetaSanity;
   final ProgressCheck? progressCheck;
   final FocusFollowThroughCheck? focusFollowThrough;
-  final ComfortCoreSummary? comfortCore; final TesterFeedback? testerFeedback;
+  final ComfortCoreSummary? comfortCore;
+  final TesterFeedback? testerFeedback;
   final CoachingSourceSummary? coachingSourceSummary;
   final CheckpointSaveStatusSummary? checkpointSaveStatusSummary;
   final TrainingBlockActionControl? trainingBlockActionControl;
-  final bool isStartingTrainingBlock; final DashboardOnboardingGuide? onboardingGuide;
+  final bool isStartingTrainingBlock;
+  final DashboardOnboardingGuide? onboardingGuide;
 
   @override
   Widget build(BuildContext context) {
@@ -150,11 +162,13 @@ class DashboardLoadedView extends StatelessWidget {
             trainingHistory: trainingHistory,
             checkpointSaveStatusSummary: checkpointSaveStatusSummary,
             testerFeedback: testerFeedback,
+            savedBlockSummaries: savedBlockSummaries,
             detailsExpanded: detailsExpanded,
             onToggleDetails: onToggleDetails,
             onOpenHeroDetail: onOpenHeroDetail,
             onEditTesterFeedback: onEditTesterFeedback,
             onShowPlaytestSummary: onShowPlaytestSummary,
+            onCopySavedSummary: onCopySavedSummary,
           ),
           const SizedBox(height: 24),
           PlayerImportCard(

@@ -38,6 +38,18 @@ class HeroDetailBlockContextCard extends StatelessWidget {
                   value: blockContext.trendStatus.label,
                   detail: blockContext.trendDetail,
                 ),
+                AppMetricTile(
+                  label: 'Before block',
+                  value: blockContext.baselineWinRatePercentage == null
+                      ? '-'
+                      : '${blockContext.baselineWinRatePercentage}%',
+                ),
+                AppMetricTile(
+                  label: 'In block',
+                  value: blockContext.reviewedBlockWinRatePercentage == null
+                      ? '-'
+                      : '${blockContext.reviewedBlockWinRatePercentage}%',
+                ),
               ],
             ),
           ],

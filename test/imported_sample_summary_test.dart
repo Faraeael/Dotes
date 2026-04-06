@@ -105,6 +105,10 @@ void main() {
       );
 
       expect(summary.primaryRoleAdherenceLabel, '80%');
+      expect(
+        summary.roleRationaleLines,
+        contains('8 of 10 matches currently lean Carry.'),
+      );
     });
 
     test('is populated for a mixed role read', () {
@@ -126,6 +130,10 @@ void main() {
       );
 
       expect(summary.primaryRoleAdherenceLabel, '50%');
+      expect(
+        summary.roleRationaleLines.first,
+        'Recent matches are split across multiple role patterns, so the app keeps the role read broad.',
+      );
     });
 
     test('is null for a small sample read', () {
@@ -147,6 +155,10 @@ void main() {
       );
 
       expect(summary.primaryRoleAdherenceLabel, isNull);
+      expect(
+        summary.roleRationaleLines.first,
+        'This sample is still small, so the role read can move quickly with a few more games.',
+      );
     });
 
     test('is null for an unclear signals read', () {
@@ -168,6 +180,10 @@ void main() {
       );
 
       expect(summary.primaryRoleAdherenceLabel, isNull);
+      expect(
+        summary.roleRationaleLines,
+        contains('100% of matches stayed too noisy for a precise role label.'),
+      );
     });
   });
 }

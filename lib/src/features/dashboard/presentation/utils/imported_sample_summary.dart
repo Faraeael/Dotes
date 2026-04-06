@@ -24,6 +24,7 @@ class ImportedSampleSummary {
     required this.mostPlayedHeroLabel,
     required this.primaryRoleLabel,
     required this.roleReasonLabel,
+    required this.roleRationaleLines,
     required this.roleMixDetailsLabel,
     required this.roleReadLabel,
     required this.primaryRoleAdherenceLabel,
@@ -38,6 +39,7 @@ class ImportedSampleSummary {
   final String? mostPlayedHeroLabel;
   final String primaryRoleLabel;
   final String roleReasonLabel;
+  final List<String> roleRationaleLines;
   final String? roleMixDetailsLabel;
   final String roleReadLabel;
   final String? primaryRoleAdherenceLabel;
@@ -50,32 +52,34 @@ class ImportedSampleSummary {
     final matches = importedPlayer.recentMatches;
     final wins = matches.where((match) => match.didWin).length;
     final losses = matches.length - wins;
-    final winRate = matches.isEmpty ? 0 : ((wins / matches.length) * 100).round();
+    final winRate = matches.isEmpty
+        ? 0
+        : ((wins / matches.length) * 100).round();
     final heroUsage = <int, int>{};
 
     for (final match in matches) {
       heroUsage.update(match.heroId, (count) => count + 1, ifAbsent: () => 1);
     }
 
-    final mostPlayedHeroId = heroUsage.entries.fold<int?>(
-      null,
-      (currentBest, entry) {
-        if (currentBest == null) {
-          return entry.key;
-        }
+    final mostPlayedHeroId = heroUsage.entries.fold<int?>(null, (
+      currentBest,
+      entry,
+    ) {
+      if (currentBest == null) {
+        return entry.key;
+      }
 
-        final currentBestCount = heroUsage[currentBest]!;
-        if (entry.value > currentBestCount) {
-          return entry.key;
-        }
+      final currentBestCount = heroUsage[currentBest]!;
+      if (entry.value > currentBestCount) {
+        return entry.key;
+      }
 
-        if (entry.value == currentBestCount && entry.key < currentBest) {
-          return entry.key;
-        }
+      if (entry.value == currentBestCount && entry.key < currentBest) {
+        return entry.key;
+      }
 
-        return currentBest;
-      },
-    );
+      return currentBest;
+    });
 
     // Compute per-hero win rates for top heroes section.
     final heroWins = <int, int>{};
@@ -86,14 +90,12 @@ class ImportedSampleSummary {
         ifAbsent: () => match.didWin ? 1 : 0,
       );
     }
-    final qualifyingHeroes = heroUsage.entries
-        .where((e) => e.value >= 3)
-        .toList()
-      ..sort((a, b) {
-        final byGames = b.value.compareTo(a.value);
-        if (byGames != 0) return byGames;
-        return a.key.compareTo(b.key);
-      });
+    final qualifyingHeroes =
+        heroUsage.entries.where((e) => e.value >= 3).toList()..sort((a, b) {
+          final byGames = b.value.compareTo(a.value);
+          if (byGames != 0) return byGames;
+          return a.key.compareTo(b.key);
+        });
     final topHeroes = qualifyingHeroes.length < 2
         ? const <HeroWinRateStat>[]
         : qualifyingHeroes.take(3).map((e) {
@@ -109,9 +111,9 @@ class ImportedSampleSummary {
     // Compute role adherence label (null when read is unreliable).
     final primaryRoleAdherenceLabel =
         roleSummary.readType != SampleRoleReadType.smallSample &&
-                roleSummary.readType != SampleRoleReadType.unclearSignals
-            ? '${(roleSummary.primaryRoleShare * 100).toStringAsFixed(0)}%'
-            : null;
+            roleSummary.readType != SampleRoleReadType.unclearSignals
+        ? '${(roleSummary.primaryRoleShare * 100).toStringAsFixed(0)}%'
+        : null;
 
     return ImportedSampleSummary(
       matchesAnalyzed: matches.length,
@@ -124,6 +126,7 @@ class ImportedSampleSummary {
           : heroDisplayName(mostPlayedHeroId),
       primaryRoleLabel: roleSummary.primaryRoleLabel,
       roleReasonLabel: roleSummary.reasonLabel,
+      roleRationaleLines: roleSummary.rationaleLines,
       roleMixDetailsLabel: roleSummary.roleMixDetailsLabel,
       roleReadLabel: roleSummary.estimateStrengthLabel,
       primaryRoleAdherenceLabel: primaryRoleAdherenceLabel,

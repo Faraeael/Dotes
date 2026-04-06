@@ -44,13 +44,16 @@ class SessionPlanService {
             nextGamesFocus: nextGamesFocus,
             comfortCore: comfortCore,
           );
+    final focusPriority = trainingPreferences.focusPriority;
     final targetType = _targetType(
       verdict: verdict,
       nextGamesFocus: nextGamesFocus,
       comfortCore: comfortCore,
       isNoisySample: isNoisySample,
       hasNamedHeroBlock: namedHeroBlock != null,
+      focusPriority: focusPriority,
     );
+    final coachingStyle = trainingPreferences.coachingStyle;
     final roleBlockKey = _roleBlockKey(
       roleSummary,
       isNoisySample: isNoisySample,
@@ -59,10 +62,11 @@ class SessionPlanService {
 
     return SessionPlan(
       queue: _queueLabel(
-        roleSummary,
-        isNoisySample: isNoisySample,
-        preferredRole: preferredRole,
-      ),
+      roleSummary,
+      isNoisySample: isNoisySample,
+      preferredRole: preferredRole,
+      queuePreference: trainingPreferences.queuePreference,
+    ),
       heroBlock: _heroBlockLabel(
         namedHeroBlock: namedHeroBlock,
         nextGamesFocus: nextGamesFocus,
@@ -76,6 +80,8 @@ class SessionPlanService {
         followThroughCheck: followThroughCheck,
         isNoisySample: isNoisySample,
         hasNamedHeroBlock: namedHeroBlock != null,
+        focusPriority: focusPriority,
+        coachingStyle: coachingStyle,
       ),
       reviewWindow: 'next 5 games',
       targetType: targetType,
@@ -106,6 +112,20 @@ class SessionPlanService {
     SampleRoleSummary? roleSummary, {
     required bool isNoisySample,
     required PlayerRole? preferredRole,
+    required TrainingQueuePreference queuePreference,
+  }) {
+    final baseQueue = _baseQueueLabel(
+      roleSummary,
+      isNoisySample: isNoisySample,
+      preferredRole: preferredRole,
+    );
+    return _queuePreferenceLabel(baseQueue, queuePreference);
+  }
+
+  String _baseQueueLabel(
+    SampleRoleSummary? roleSummary, {
+    required bool isNoisySample,
+    required PlayerRole? preferredRole,
   }) {
     if (preferredRole != null) {
       return '${preferredRole.label} only';
@@ -117,6 +137,17 @@ class SessionPlanService {
     }
 
     return 'one role only';
+  }
+
+  String _queuePreferenceLabel(
+    String baseQueue,
+    TrainingQueuePreference queuePreference,
+  ) {
+    return switch (queuePreference) {
+      TrainingQueuePreference.auto => baseQueue,
+      TrainingQueuePreference.soloOnly => '$baseQueue, solo queue',
+      TrainingQueuePreference.partyOnly => '$baseQueue, party queue',
+    };
   }
 
   String? _roleBlockKey(
@@ -188,25 +219,37 @@ class SessionPlanService {
     required FocusFollowThroughCheck? followThroughCheck,
     required bool isNoisySample,
     required bool hasNamedHeroBlock,
+    required TrainingFocusPriority focusPriority,
+    required TrainingCoachingStyle coachingStyle,
   }) {
+    final focusPriorityTarget = _focusPriorityTargetLabel(
+      focusPriority: focusPriority,
+      hasNamedHeroBlock: hasNamedHeroBlock,
+      comfortCore: comfortCore,
+    );
+    if (focusPriorityTarget != null) {
+      return _styleTargetLabel(focusPriorityTarget, coachingStyle);
+    }
+
     if (isNoisySample) {
-      return 'build a cleaner sample';
+      return _styleTargetLabel('build a cleaner sample', coachingStyle);
     }
 
     if (nextGamesFocus?.sourceType == CoachingInsightType.earlyDeathRisk) {
-      return 'keep deaths to 6 or fewer';
+      return _styleTargetLabel('keep deaths to 6 or fewer', coachingStyle);
     }
 
     if ((hasNamedHeroBlock || _hasStableComfortBlock(comfortCore)) &&
         followThroughCheck?.isReady == true) {
-      return switch (followThroughCheck!.status!) {
+      final baseTarget = switch (followThroughCheck!.status!) {
         FocusFollowThroughStatus.onTrack => 'repeat the block cleanly',
         FocusFollowThroughStatus.mixed => 'cut the drift outside the block',
         FocusFollowThroughStatus.offTrack => 'get back inside the block',
       };
+      return _styleTargetLabel(baseTarget, coachingStyle);
     }
 
-    return switch (nextGamesFocus?.sourceType) {
+    final baseTarget = switch (nextGamesFocus?.sourceType) {
       CoachingInsightType.heroPoolSpread =>
         hasNamedHeroBlock
             ? 'stay on this 2-hero block'
@@ -225,6 +268,7 @@ class SessionPlanService {
             ? 'hold the clean edge'
             : 'keep the block easy to review',
     };
+    return _styleTargetLabel(baseTarget, coachingStyle);
   }
 
   SessionPlanTargetType _targetType({
@@ -233,7 +277,17 @@ class SessionPlanService {
     required ComfortCoreSummary? comfortCore,
     required bool isNoisySample,
     required bool hasNamedHeroBlock,
+    required TrainingFocusPriority focusPriority,
   }) {
+    final focusPriorityType = _focusPriorityTargetType(
+      focusPriority: focusPriority,
+      hasNamedHeroBlock: hasNamedHeroBlock,
+      comfortCore: comfortCore,
+    );
+    if (focusPriorityType != null) {
+      return focusPriorityType;
+    }
+
     if (isNoisySample) {
       return SessionPlanTargetType.heroPool;
     }
@@ -329,5 +383,94 @@ class SessionPlanService {
                 ComfortCoreConclusionType.successInsideCore ||
             comfortCore.conclusionType ==
                 ComfortCoreConclusionType.outsideWeaker);
+  }
+
+  String? _focusPriorityTargetLabel({
+    required TrainingFocusPriority focusPriority,
+    required bool hasNamedHeroBlock,
+    required ComfortCoreSummary? comfortCore,
+  }) {
+    return switch (focusPriority) {
+      TrainingFocusPriority.auto => null,
+      TrainingFocusPriority.reduceDeaths => 'keep deaths to 6 or fewer',
+      TrainingFocusPriority.tightenHeroPool =>
+        hasNamedHeroBlock
+            ? 'stay on this 2-hero block'
+            : 'keep the pool to 2 heroes',
+      TrainingFocusPriority.stayInComfortBlock =>
+        (hasNamedHeroBlock || _hasStableComfortBlock(comfortCore))
+            ? 'stay inside the block'
+            : 'compare results inside the block',
+    };
+  }
+
+  SessionPlanTargetType? _focusPriorityTargetType({
+    required TrainingFocusPriority focusPriority,
+    required bool hasNamedHeroBlock,
+    required ComfortCoreSummary? comfortCore,
+  }) {
+    return switch (focusPriority) {
+      TrainingFocusPriority.auto => null,
+      TrainingFocusPriority.reduceDeaths => SessionPlanTargetType.deaths,
+      TrainingFocusPriority.tightenHeroPool => SessionPlanTargetType.heroPool,
+      TrainingFocusPriority.stayInComfortBlock =>
+        hasNamedHeroBlock || _hasStableComfortBlock(comfortCore)
+            ? SessionPlanTargetType.comfortBlock
+            : SessionPlanTargetType.heroPool,
+    };
+  }
+
+  String _styleTargetLabel(
+    String baseTarget,
+    TrainingCoachingStyle coachingStyle,
+  ) {
+    return switch (coachingStyle) {
+      TrainingCoachingStyle.auto => baseTarget,
+      TrainingCoachingStyle.steady => _steadyTargetLabel(baseTarget),
+      TrainingCoachingStyle.direct => _directTargetLabel(baseTarget),
+    };
+  }
+
+  String _steadyTargetLabel(String baseTarget) {
+    return switch (baseTarget) {
+      'keep deaths to 6 or fewer' => 'keep the block steady and deaths to 6 or fewer',
+      'stay on this 2-hero block' => 'keep the block steady on this 2-hero pool',
+      'keep the pool to 2 heroes' => 'keep the next block steady on 2 heroes',
+      'stay inside the block' => 'keep the next block steady inside the comfort block',
+      'compare results inside the block' =>
+        'use the next block to compare steadier results inside the comfort block',
+      'build a cleaner sample' => 'keep the next block steady and build a cleaner sample',
+      'repeat the block cleanly' => 'keep the next block steady and repeat the block cleanly',
+      'cut the drift outside the block' =>
+        'steady the next block and cut the drift outside the pool',
+      'get back inside the block' =>
+        'steady the next block and get back inside the pool',
+      'make the sample easier to read' =>
+        'keep the next block steady so the sample stays easier to read',
+      'stabilize the next block' => 'keep the next block steady and stable',
+      'hold the clean edge' => 'keep the next block steady and hold the clean edge',
+      'keep the block easy to review' =>
+        'keep the next block steady and easy to review',
+      _ => baseTarget,
+    };
+  }
+
+  String _directTargetLabel(String baseTarget) {
+    return switch (baseTarget) {
+      'keep deaths to 6 or fewer' => 'cap deaths at 6',
+      'stay on this 2-hero block' => 'lock the next block to these 2 heroes',
+      'keep the pool to 2 heroes' => 'lock the next block to 2 heroes',
+      'stay inside the block' => 'stay in the block',
+      'compare results inside the block' => 'test results inside the block',
+      'build a cleaner sample' => 'clean up the sample',
+      'repeat the block cleanly' => 'repeat the block cleanly',
+      'cut the drift outside the block' => 'cut the drift',
+      'get back inside the block' => 'get back in the block',
+      'make the sample easier to read' => 'make the sample easier to read',
+      'stabilize the next block' => 'stabilize the block',
+      'hold the clean edge' => 'hold the edge',
+      'keep the block easy to review' => 'keep the block reviewable',
+      _ => baseTarget,
+    };
   }
 }

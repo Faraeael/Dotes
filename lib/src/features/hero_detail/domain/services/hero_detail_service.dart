@@ -77,6 +77,12 @@ class HeroDetailService {
         benchmarkWinRate != null &&
         !benchmarkHeroIds.contains(heroId) &&
         heroWinRate <= benchmarkWinRate - _weakerBlockMargin;
+    final blockContext = _blockContext(
+      heroId: heroId,
+      allMatches: allMatches,
+      previousCheckpoint: previousCheckpoint,
+      blockReview: blockReview,
+    );
     final tags = _buildTags(
       isInComfortCore: isInComfortCore,
       isInCurrentPlan: isInCurrentPlan,
@@ -116,6 +122,15 @@ class HeroDetailService {
         isStrongerRecentPick: isStrongerRecentPick,
         isWeakerThanTopBlock: isWeakerThanTopBlock,
       ),
+      rationaleLines: _rationaleLines(
+        matchesInSample: heroMatches.length,
+        isInComfortCore: isInComfortCore,
+        isInCurrentPlan: isInCurrentPlan,
+        isOutsideCurrentPlan: isOutsideCurrentPlan,
+        isStrongerRecentPick: isStrongerRecentPick,
+        isWeakerThanTopBlock: isWeakerThanTopBlock,
+        blockContext: blockContext,
+      ),
       trainingDecision: _trainingDecision(
         hasStrongRead: hasStrongRead,
         isInComfortCore: isInComfortCore,
@@ -124,15 +139,59 @@ class HeroDetailService {
         isOutsideCurrentPlan: isOutsideCurrentPlan,
         isWeakerThanTopBlock: isWeakerThanTopBlock,
       ),
-      blockContext: _blockContext(
-        heroId: heroId,
-        allMatches: allMatches,
-        previousCheckpoint: previousCheckpoint,
-        blockReview: blockReview,
-      ),
+      blockContext: blockContext,
       metaSummary: metaSummary,
       recentMatches: sortedHeroMatches,
     );
+  }
+
+  List<String> _rationaleLines({
+    required int matchesInSample,
+    required bool isInComfortCore,
+    required bool isInCurrentPlan,
+    required bool isOutsideCurrentPlan,
+    required bool isStrongerRecentPick,
+    required bool isWeakerThanTopBlock,
+    required HeroBlockContext? blockContext,
+  }) {
+    final lines = <String>[
+      if (matchesInSample < minimumMatchesForStrongRead)
+        'Only $matchesInSample recent ${matchesInSample == 1 ? 'game' : 'games'} on this hero, so the read stays conservative.',
+      if (isInCurrentPlan)
+        'This hero is already inside your current named block.',
+      if (isOutsideCurrentPlan)
+        'This hero sits outside the current named block for now.',
+      if (isInComfortCore)
+        'Recent wins still point back to this hero as part of your comfort core.',
+      if (isStrongerRecentPick)
+        'Its recent win rate is stronger than your overall sample baseline.',
+      if (isWeakerThanTopBlock)
+        'Its recent results are trailing the heroes carrying your current block.',
+    ];
+
+    if (blockContext != null) {
+      lines.add(_blockContextReason(blockContext));
+    }
+
+    if (lines.isEmpty) {
+      return const [
+        'This hero does not stand out strongly from the current sample yet.',
+      ];
+    }
+
+    return lines;
+  }
+
+  String _blockContextReason(HeroBlockContext blockContext) {
+    final appearanceLabel =
+        '${blockContext.reviewedBlockAppearances} of ${blockContext.reviewedBlockGames} review games';
+    return switch (blockContext.lastPlanStatus) {
+      HeroLastPlanStatus.inLastNamedBlock =>
+        'The last started block used this hero in $appearanceLabel.',
+      HeroLastPlanStatus.outsideLastNamedBlock =>
+        'The last started block moved outside this hero, with $appearanceLabel on it.',
+      HeroLastPlanStatus.noNamedHeroBlock => blockContext.trendDetail,
+    };
   }
 
   HeroBlockContext? _blockContext({
@@ -160,13 +219,23 @@ class HeroDetailService {
       baselineMatches: baselineMatches,
       reviewedBlockMatches: reviewedHeroMatches,
     );
+    final baselineWinRate = _heroSampleWinRateFromCheckpoint(baselineMatches);
+    final reviewedBlockWinRate = _heroSampleWinRateFromRecent(
+      reviewedHeroMatches,
+    );
 
     return HeroBlockContext(
       lastPlanStatus: lastPlanStatus,
       reviewedBlockAppearances: reviewedHeroMatches.length,
       reviewedBlockGames: blockReview.gamesLogged,
       trendStatus: trendStatus,
-      trendDetail: _trendDetail(trendStatus),
+      trendDetail: _trendDetail(
+        trendStatus: trendStatus,
+        baselineWinRate: baselineWinRate,
+        reviewedBlockWinRate: reviewedBlockWinRate,
+      ),
+      baselineWinRatePercentage: _toPercentOrNull(baselineWinRate),
+      reviewedBlockWinRatePercentage: _toPercentOrNull(reviewedBlockWinRate),
     );
   }
 
@@ -232,15 +301,58 @@ class HeroDetailService {
     return HeroBlockTrendStatus.flat;
   }
 
-  String _trendDetail(HeroBlockTrendStatus trendStatus) {
+  String _trendDetail({
+    required HeroBlockTrendStatus trendStatus,
+    required double? baselineWinRate,
+    required double? reviewedBlockWinRate,
+  }) {
+    final baselineLabel = _percentageLabel(baselineWinRate);
+    final reviewedLabel = _percentageLabel(reviewedBlockWinRate);
+
     return switch (trendStatus) {
       HeroBlockTrendStatus.improved ||
       HeroBlockTrendStatus.flat ||
       HeroBlockTrendStatus.worse =>
-        'Compared against the last checkpoint window.',
+        'Win rate moved from $baselineLabel before the block to $reviewedLabel in the review window.',
       HeroBlockTrendStatus.notEnoughHistory =>
         'Need at least 2 baseline and 2 block games on this hero.',
     };
+  }
+
+  double? _heroSampleWinRateFromCheckpoint(
+    List<CoachingCheckpointMatchSummary> matches,
+  ) {
+    if (matches.isEmpty) {
+      return null;
+    }
+
+    final wins = matches.where((match) => match.didWin).length;
+    return wins / matches.length;
+  }
+
+  double? _heroSampleWinRateFromRecent(List<RecentMatch> matches) {
+    if (matches.isEmpty) {
+      return null;
+    }
+
+    final wins = matches.where((match) => match.didWin).length;
+    return wins / matches.length;
+  }
+
+  int? _toPercentOrNull(double? value) {
+    if (value == null) {
+      return null;
+    }
+
+    return (value * 100).round();
+  }
+
+  String _percentageLabel(double? value) {
+    if (value == null) {
+      return '-';
+    }
+
+    return '${(value * 100).round()}%';
   }
 
   List<int> _stableComfortCoreHeroIds(ComfortCoreSummary? comfortCore) {

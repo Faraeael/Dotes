@@ -6,10 +6,7 @@ import '../../../../app/widgets/app_status_badge.dart';
 import '../../domain/models/dashboard_verdict.dart';
 
 class VerdictCard extends StatelessWidget {
-  const VerdictCard({
-    required this.verdict,
-    super.key,
-  });
+  const VerdictCard({required this.verdict, super.key});
 
   final DashboardVerdict verdict;
 
@@ -30,11 +27,29 @@ class VerdictCard extends StatelessWidget {
                   'Fast read on the biggest leak to fix and the biggest edge to press.',
             ),
             const SizedBox(height: 16),
-            if (!verdict.hasSignal)
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                AppStatusBadge(
+                  label: verdict.confidenceLabel,
+                  tone: _toneForConfidence(verdict.confidenceLabel),
+                ),
+              ],
+            ),
+            if (verdict.reasonLabel != null) ...[
+              const SizedBox(height: 10),
               Text(
-                verdict.fallbackMessage!,
-                style: theme.textTheme.bodyMedium,
-              )
+                verdict.reasonLabel!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ] else
+              const SizedBox(height: 16),
+            if (!verdict.hasSignal)
+              Text(verdict.fallbackMessage!, style: theme.textTheme.bodyMedium)
             else ...[
               if (verdict.biggestLeak != null)
                 _VerdictPanel(
@@ -61,6 +76,19 @@ class VerdictCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  AppStatusTone _toneForConfidence(String confidenceLabel) {
+    final lower = confidenceLabel.toLowerCase();
+    if (lower.contains('limited')) {
+      return AppStatusTone.warning;
+    }
+
+    if (lower.contains('stronger')) {
+      return AppStatusTone.positive;
+    }
+
+    return AppStatusTone.info;
   }
 }
 

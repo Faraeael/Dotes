@@ -37,7 +37,7 @@ class OpenDotaPlayerRepository implements PlayerImportRepository {
           AppFailure(
             type: AppFailureType.notFound,
             message:
-                'We could not find that OpenDota player. Check the account ID and try again.',
+                'We could not find a public OpenDota profile for that account ID. Check the digits and make sure the player has public match data enabled.',
             statusCode: 404,
           ),
         );
@@ -97,7 +97,7 @@ class OpenDotaPlayerRepository implements PlayerImportRepository {
       return AppFailure(
         type: AppFailureType.notFound,
         message:
-            'We could not find that OpenDota player. Check the account ID and try again.',
+            'We could not find a public OpenDota profile for that account ID. Check the digits and make sure the player has public match data enabled.',
         statusCode: statusCode,
       );
     }
@@ -107,7 +107,8 @@ class OpenDotaPlayerRepository implements PlayerImportRepository {
         error.type == DioExceptionType.sendTimeout) {
       return const AppFailure(
         type: AppFailureType.timeout,
-        message: 'OpenDota took too long to respond. Please try again.',
+        message:
+            'OpenDota took too long to respond. Please wait a moment and retry the import.',
       );
     }
 
@@ -115,14 +116,15 @@ class OpenDotaPlayerRepository implements PlayerImportRepository {
       return const AppFailure(
         type: AppFailureType.network,
         message:
-            'No internet connection detected, or OpenDota could not be reached.',
+            'We could not reach OpenDota. Check your internet connection and try the import again.',
       );
     }
 
     if (statusCode == 429) {
       return AppFailure(
         type: AppFailureType.rateLimited,
-        message: 'OpenDota is busy right now. Please wait a moment and retry.',
+        message:
+            'OpenDota is rate-limiting requests right now. Please wait a moment and retry the import.',
         statusCode: statusCode,
       );
     }
@@ -138,8 +140,7 @@ class OpenDotaPlayerRepository implements PlayerImportRepository {
     if (statusCode != null) {
       return AppFailure(
         type: AppFailureType.unknown,
-        message:
-            'OpenDota returned an unexpected response. Please try again.',
+        message: 'OpenDota returned an unexpected response. Please try again.',
         statusCode: statusCode,
       );
     }

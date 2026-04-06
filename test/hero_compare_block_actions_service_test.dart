@@ -9,42 +9,51 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const service = HeroCompareBlockActionsService();
 
-  test('renders current block state and already-in-block hero state correctly', () {
-    final actions = service.build(
-      compare: HeroCompare(
-        primaryHero: _detail('Mars', 129),
-        secondaryHero: _detail('Slardar', 28),
-        verdict: const HeroCompareVerdict(
-          type: HeroCompareVerdictType.keepCurrentBlock,
-          message: 'Keep the current hero block.',
+  test(
+    'renders current block state and already-in-block hero state correctly',
+    () {
+      final actions = service.build(
+        compare: HeroCompare(
+          primaryHero: _detail('Mars', 129),
+          secondaryHero: _detail('Slardar', 28),
+          verdict: const HeroCompareVerdict(
+            type: HeroCompareVerdictType.keepCurrentBlock,
+            message: 'Keep the current hero block.',
+          ),
         ),
-      ),
-      leftControl: const HeroTrainingBlockControl(
-        coachingMode: TrainingCoachingMode.preferManualSetup,
-        lockedHeroIds: [129, 135],
-        lockedBlockLabel: 'Mars + Dawnbreaker',
-        primaryAction: HeroTrainingBlockActionType.remove,
-        willSwitchToManualSetup: false,
-        replaceOptions: [],
-      ),
-      rightControl: const HeroTrainingBlockControl(
-        coachingMode: TrainingCoachingMode.preferManualSetup,
-        lockedHeroIds: [129, 135],
-        lockedBlockLabel: 'Mars + Dawnbreaker',
-        primaryAction: HeroTrainingBlockActionType.replace,
-        willSwitchToManualSetup: false,
-        replaceOptions: [
-          HeroTrainingBlockReplaceOption(heroId: 129, heroLabel: 'Mars'),
-          HeroTrainingBlockReplaceOption(heroId: 135, heroLabel: 'Dawnbreaker'),
-        ],
-      ),
-    );
+        leftControl: const HeroTrainingBlockControl(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          lockedHeroIds: [129, 135],
+          lockedBlockLabel: 'Mars + Dawnbreaker',
+          primaryAction: HeroTrainingBlockActionType.remove,
+          willSwitchToManualSetup: false,
+          replaceOptions: [],
+        ),
+        rightControl: const HeroTrainingBlockControl(
+          coachingMode: TrainingCoachingMode.preferManualSetup,
+          lockedHeroIds: [129, 135],
+          lockedBlockLabel: 'Mars + Dawnbreaker',
+          primaryAction: HeroTrainingBlockActionType.replace,
+          willSwitchToManualSetup: false,
+          replaceOptions: [
+            HeroTrainingBlockReplaceOption(heroId: 129, heroLabel: 'Mars'),
+            HeroTrainingBlockReplaceOption(
+              heroId: 135,
+              heroLabel: 'Dawnbreaker',
+            ),
+          ],
+        ),
+      );
 
-    expect(actions.currentBlockLabel, 'Mars + Dawnbreaker');
-    expect(actions.leftHero.isAlreadyInBlock, isTrue);
-    expect(actions.leftHero.actionLabel, 'Mars already in block');
-    expect(actions.rightHero.actionLabel, 'Replace current block hero with Slardar');
-  });
+      expect(actions.currentBlockLabel, 'Mars + Dawnbreaker');
+      expect(actions.leftHero.isAlreadyInBlock, isTrue);
+      expect(actions.leftHero.actionLabel, 'Mars already in block');
+      expect(
+        actions.rightHero.actionLabel,
+        'Replace current block hero with Slardar',
+      );
+    },
+  );
 }
 
 HeroDetail _detail(String name, int heroId) {
@@ -60,6 +69,7 @@ HeroDetail _detail(String name, int heroId) {
     averageMatchDuration: const Duration(minutes: 34),
     tags: const [],
     coachingRead: 'Read',
+    rationaleLines: const ['Reason'],
     trainingDecision: HeroTrainingDecision.goodBackupHero,
     blockContext: null,
     metaSummary: const HeroMetaSummary(

@@ -5,6 +5,7 @@ import '../../../../app/widgets/app_metric_tile.dart';
 import '../../../../app/widgets/app_status_badge.dart';
 import '../../../checkpoints/domain/models/checkpoint_save_status_summary.dart';
 import '../../domain/models/training_history.dart';
+import 'training_history_trend_panel.dart';
 
 class TrainingHistoryCard extends StatelessWidget {
   const TrainingHistoryCard({
@@ -34,6 +35,8 @@ class TrainingHistoryCard extends StatelessWidget {
               const SizedBox(height: 12),
               _CheckpointSaveStatusPanel(summary: checkpointSaveStatusSummary!),
             ],
+            const SizedBox(height: 12),
+            TrainingHistoryTrendPanel(trend: history.trend),
             const SizedBox(height: 8),
             if (!history.hasEntries)
               Text(history.fallbackMessage!, style: theme.textTheme.bodyMedium)

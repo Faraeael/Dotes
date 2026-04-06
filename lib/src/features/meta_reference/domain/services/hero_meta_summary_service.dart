@@ -40,9 +40,9 @@ class HeroMetaSummaryService {
         reference: reference,
         freshness: freshness,
         interpretation:
-            'Lean on your own sample until meta data is refreshed.',
+            'Lean on your own sample until the local patch reference is refreshed.',
         fallbackMessage: '',
-        staleWarning: 'Meta reference is outdated for the current patch.',
+        staleWarning: freshness.detailLabel,
       );
     }
 

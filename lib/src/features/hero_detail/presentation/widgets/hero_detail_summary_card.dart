@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_reason_list.dart';
 import '../../../../app/widgets/app_metric_grid.dart';
 import '../../../../app/widgets/app_metric_tile.dart';
 import '../../../../app/widgets/app_status_badge.dart';
@@ -49,6 +50,13 @@ class HeroDetailSummaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(detail.coachingRead),
+            const SizedBox(height: 20),
+            Text(
+              'Why this read',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            AppReasonList(reasons: detail.rationaleLines),
             const SizedBox(height: 20),
             Text(
               'Training decision',

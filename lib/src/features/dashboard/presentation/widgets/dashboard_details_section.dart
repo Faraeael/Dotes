@@ -11,11 +11,13 @@ import '../../../progress/presentation/widgets/progress_check_card.dart';
 import '../../../tester_feedback/domain/models/tester_feedback.dart';
 import '../../../tester_feedback/presentation/widgets/tester_feedback_card.dart';
 import '../../domain/models/comfort_core_summary.dart';
+import '../../domain/models/saved_block_summary.dart';
 import '../../domain/models/training_history.dart';
 import '../utils/imported_sample_summary.dart';
 import 'comfort_core_card.dart';
 import 'dashboard_section_group.dart';
 import 'imported_sample_card.dart';
+import 'saved_block_summaries_card.dart';
 import 'training_history_card.dart';
 
 class DashboardDetailsSection extends StatelessWidget {
@@ -28,6 +30,8 @@ class DashboardDetailsSection extends StatelessWidget {
     required this.onOpenHeroDetail,
     required this.onEditTesterFeedback,
     required this.onShowPlaytestSummary,
+    required this.savedBlockSummaries,
+    required this.onCopySavedSummary,
     this.progressCheck,
     this.focusFollowThrough,
     this.comfortCore,
@@ -45,6 +49,8 @@ class DashboardDetailsSection extends StatelessWidget {
   final ValueChanged<int> onOpenHeroDetail;
   final VoidCallback onEditTesterFeedback;
   final VoidCallback onShowPlaytestSummary;
+  final List<SavedBlockSummary> savedBlockSummaries;
+  final ValueChanged<String> onCopySavedSummary;
   final ProgressCheck? progressCheck;
   final FocusFollowThroughCheck? focusFollowThrough;
   final ComfortCoreSummary? comfortCore;
@@ -73,6 +79,7 @@ class DashboardDetailsSection extends StatelessWidget {
           mostPlayedHeroLabel: sampleSummary.mostPlayedHeroLabel,
           primaryRoleLabel: sampleSummary.primaryRoleLabel,
           roleReasonLabel: sampleSummary.roleReasonLabel,
+          roleRationaleLines: sampleSummary.roleRationaleLines,
           roleMixDetailsLabel: sampleSummary.roleMixDetailsLabel,
           roleReadLabel: sampleSummary.roleReadLabel,
           primaryRoleAdherenceLabel: sampleSummary.primaryRoleAdherenceLabel,
@@ -94,6 +101,10 @@ class DashboardDetailsSection extends StatelessWidget {
             history: trainingHistory!,
             checkpointSaveStatusSummary: checkpointSaveStatusSummary,
           ),
+        SavedBlockSummariesCard(
+          summaries: savedBlockSummaries,
+          onCopySummary: onCopySavedSummary,
+        ),
         TesterFeedbackCard(
           feedback: testerFeedback,
           onEdit: onEditTesterFeedback,

@@ -1,18 +1,22 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../app/router/app_router.dart';
 import '../../../features/checkpoints/application/coaching_checkpoint_providers.dart';
 import '../../../features/checkpoints/application/training_block_action_providers.dart';
-import '../../../features/dashboard/application/dashboard_layout_providers.dart';
 import '../../../features/dashboard/application/block_review_provider.dart';
-import '../../../features/dashboard/application/block_summary_export_provider.dart';
 import '../../../features/dashboard/application/comfort_core_provider.dart';
+import '../../../features/dashboard/application/dashboard_layout_providers.dart';
 import '../../../features/dashboard/application/dashboard_onboarding_providers.dart';
 import '../../../features/dashboard/application/dashboard_verdict_provider.dart';
 import '../../../features/dashboard/application/end_block_summary_provider.dart';
+import '../../../features/dashboard/application/saved_block_summary_providers.dart';
 import '../../../features/dashboard/application/session_plan_provider.dart';
 import '../../../features/dashboard/application/training_history_provider.dart';
+import '../../../features/dashboard/domain/services/block_summary_export_service.dart';
 import '../../../features/hero_detail/presentation/hero_detail_screen.dart';
 import '../../../features/insights/application/coaching_insights_provider.dart';
 import '../../../features/player_import/application/imported_player_provider.dart';
@@ -26,9 +30,10 @@ import '../../../features/tester_feedback/presentation/widgets/tester_feedback_d
 import '../../../features/training_preferences/application/training_preferences_providers.dart';
 import '../../../features/training_preferences/presentation/widgets/training_preferences_dialog.dart';
 import 'utils/imported_sample_summary.dart';
+import 'widgets/block_summary_export_dialog.dart';
 import 'widgets/dashboard_empty_view.dart';
 import 'widgets/dashboard_loaded_view.dart';
-import 'widgets/block_summary_export_dialog.dart';
+import 'widgets/practice_note_dialog.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -57,7 +62,7 @@ class DashboardScreen extends ConsumerWidget {
     final dashboardVerdict = ref.watch(dashboardVerdictProvider);
     final blockReview = ref.watch(blockReviewProvider);
     final endBlockSummary = ref.watch(endBlockSummaryProvider);
-    final blockSummaryExport = ref.watch(blockSummaryExportProvider);
+    final savedBlockSummaries = ref.watch(currentSavedBlockSummariesProvider);
     final sessionPlan = ref.watch(sessionPlanProvider);
     final sessionPlanMetaSanity = ref.watch(sessionPlanMetaSanityProvider);
     final trainingHistory = ref.watch(trainingHistoryProvider);
@@ -67,9 +72,7 @@ class DashboardScreen extends ConsumerWidget {
     final trainingBlockActionControl = ref.watch(
       trainingBlockActionControlProvider,
     );
-    final isStartingTrainingBlock = ref.watch(
-      trainingBlockActionBusyProvider,
-    );
+    final isStartingTrainingBlock = ref.watch(trainingBlockActionBusyProvider);
     final showDashboardOnboarding = ref.watch(
       dashboardOnboardingVisibleProvider,
     );
@@ -131,6 +134,50 @@ class DashboardScreen extends ConsumerWidget {
       await PlaytestSummaryDialog.show(context);
     }
 
+    Future<void> saveEndBlockSummary() async {
+      if (importedPlayer == null) {
+        return;
+      }
+
+      final practiceNote = await PracticeNoteDialog.show(context);
+      if (!context.mounted || practiceNote == null) {
+        return;
+      }
+
+      final exportSummary = const BlockSummaryExportService().build(
+        completedSummary: endBlockSummary,
+        activeStartedCheckpoint: ref.read(previousCoachingCheckpointProvider),
+        importedPlayer: importedPlayer,
+        practiceNote: practiceNote,
+      );
+      if (exportSummary == null) {
+        return;
+      }
+
+      await ref
+          .read(savedBlockSummaryControllerProvider)
+          .saveForAccount(importedPlayer.profile.accountId, exportSummary);
+      if (!context.mounted) {
+        return;
+      }
+
+      await BlockSummaryExportDialog.show(
+        context,
+        summary: exportSummary,
+        savedToHistory: true,
+      );
+    }
+
+    Future<void> copySavedSummary(String shareText) async {
+      await Clipboard.setData(ClipboardData(text: shareText));
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saved summary copied for sharing')),
+      );
+    }
+
     if (importedPlayer == null || sampleRoleSummary == null) {
       return DashboardEmptyView(onGoToImport: goToImport);
     }
@@ -149,6 +196,7 @@ class DashboardScreen extends ConsumerWidget {
       focusFollowThrough: focusFollowThrough,
       comfortCore: comfortCore,
       testerFeedback: testerFeedback,
+      savedBlockSummaries: savedBlockSummaries,
       dashboardVerdict: dashboardVerdict,
       blockReview: blockReview,
       endBlockSummary: endBlockSummary,
@@ -175,7 +223,9 @@ class DashboardScreen extends ConsumerWidget {
       },
       onStartTrainingBlock: () {
         unawaited(
-          ref.read(trainingBlockActionControllerProvider).startOrRestartCurrentBlock(),
+          ref
+              .read(trainingBlockActionControllerProvider)
+              .startOrRestartCurrentBlock(),
         );
       },
       onShowHowItWorks: () {
@@ -190,16 +240,14 @@ class DashboardScreen extends ConsumerWidget {
       onShowPlaytestSummary: () {
         unawaited(showPlaytestSummary());
       },
-      onSaveEndBlockSummary: blockSummaryExport == null
+      onSaveEndBlockSummary: endBlockSummary == null
           ? null
           : () {
-              unawaited(
-                BlockSummaryExportDialog.show(
-                  context,
-                  summary: blockSummaryExport,
-                ),
-              );
+              unawaited(saveEndBlockSummary());
             },
+      onCopySavedSummary: (shareText) {
+        unawaited(copySavedSummary(shareText));
+      },
       onGoToImport: goToImport,
     );
   }

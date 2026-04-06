@@ -21,7 +21,18 @@ class TrainingHistoryService {
       return const TrainingHistory(
         entries: [],
         fallbackMessage:
-            'No completed cycles yet \u2014 finish your first 5-game block to see history here.',
+            'No completed cycles yet - finish your first 5-game block to see history here.',
+        trend: TrainingHistoryTrend(
+          headline: 'No completed cycles yet',
+          detail:
+              'Finish your first full 5-game review cycle to start a long-term trend read.',
+          completedCycles: 0,
+          onTrackCount: 0,
+          mixedCount: 0,
+          offTrackCount: 0,
+          currentStreakCount: 0,
+          currentStreakOutcome: null,
+        ),
       );
     }
 
@@ -33,9 +44,11 @@ class TrainingHistoryService {
         ),
     ]..sort(_compareEntriesBySavedAtDesc);
 
+    final visibleEntries = entries.take(maxEntries).toList(growable: false);
     return TrainingHistory(
-      entries: entries.take(maxEntries).toList(growable: false),
+      entries: visibleEntries,
       fallbackMessage: null,
+      trend: _buildTrend(visibleEntries),
     );
   }
 
@@ -64,6 +77,66 @@ class TrainingHistoryService {
       ),
       deathsAverage: hasEnoughMatches ? sample.averageDeaths : null,
       winRatePercent: hasEnoughMatches ? sample.winRate * 100 : null,
+    );
+  }
+
+  TrainingHistoryTrend _buildTrend(List<TrainingHistoryEntry> entries) {
+    if (entries.isEmpty) {
+      return const TrainingHistoryTrend(
+        headline: 'No completed cycles yet',
+        detail:
+            'Finish your first full 5-game review cycle to start a long-term trend read.',
+        completedCycles: 0,
+        onTrackCount: 0,
+        mixedCount: 0,
+        offTrackCount: 0,
+        currentStreakCount: 0,
+        currentStreakOutcome: null,
+      );
+    }
+
+    final onTrackCount = entries
+        .where((entry) => entry.outcome == TrainingCycleOutcome.onTrack)
+        .length;
+    final mixedCount = entries
+        .where((entry) => entry.outcome == TrainingCycleOutcome.mixed)
+        .length;
+    final offTrackCount = entries
+        .where((entry) => entry.outcome == TrainingCycleOutcome.offTrack)
+        .length;
+
+    final latestOutcome = entries.first.outcome;
+    var streakCount = 0;
+    for (final entry in entries) {
+      if (entry.outcome != latestOutcome) {
+        break;
+      }
+      streakCount++;
+    }
+
+    final headline = switch (latestOutcome) {
+      TrainingCycleOutcome.onTrack when streakCount >= 2 =>
+        'You are stacking on-track blocks',
+      TrainingCycleOutcome.onTrack => 'The latest block landed on track',
+      TrainingCycleOutcome.mixed => 'The recent block trend is mixed',
+      TrainingCycleOutcome.offTrack when streakCount >= 2 =>
+        'Recent blocks are drifting off track',
+      TrainingCycleOutcome.offTrack => 'The latest block drifted off track',
+    };
+
+    final detail =
+        '$onTrackCount on-track, $mixedCount mixed, $offTrackCount off-track over the last ${entries.length} completed cycles. '
+        'Current streak: $streakCount ${latestOutcome.label.toLowerCase()}.';
+
+    return TrainingHistoryTrend(
+      headline: headline,
+      detail: detail,
+      completedCycles: entries.length,
+      onTrackCount: onTrackCount,
+      mixedCount: mixedCount,
+      offTrackCount: offTrackCount,
+      currentStreakCount: streakCount,
+      currentStreakOutcome: latestOutcome,
     );
   }
 

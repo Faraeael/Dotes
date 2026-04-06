@@ -26,6 +26,12 @@ void main() {
         detail.coachingRead,
         'This hero is currently part of your comfort core.',
       );
+      expect(
+        detail.rationaleLines,
+        contains(
+          'Recent wins still point back to this hero as part of your comfort core.',
+        ),
+      );
       expect(detail.trainingDecision, HeroTrainingDecision.goodBackupHero);
     });
 
@@ -44,6 +50,16 @@ void main() {
         detail.coachingRead,
         'Results on this hero are weaker than your top block.',
       );
+      expect(
+        detail.rationaleLines,
+        contains('This hero sits outside the current named block for now.'),
+      );
+      expect(
+        detail.rationaleLines,
+        contains(
+          'Its recent results are trailing the heroes carrying your current block.',
+        ),
+      );
       expect(detail.trainingDecision, HeroTrainingDecision.testLaterNotNow);
     });
 
@@ -61,6 +77,10 @@ void main() {
         detail.coachingRead,
         'This hero is currently in your session plan.',
       );
+      expect(
+        detail.rationaleLines,
+        contains('This hero is already inside your current named block.'),
+      );
       expect(detail.trainingDecision, HeroTrainingDecision.keepInBlock);
     });
 
@@ -74,6 +94,10 @@ void main() {
 
       expect(detail.matchesInSample, 2);
       expect(detail.coachingRead, 'Too little recent data for a strong read.');
+      expect(
+        detail.rationaleLines.first,
+        'Only 2 recent games on this hero, so the read stays conservative.',
+      );
       expect(detail.trainingDecision, HeroTrainingDecision.tooLittleData);
       expect(detail.averageDeaths, closeTo(4.5, 0.001));
     });
@@ -104,6 +128,12 @@ void main() {
         HeroLastPlanStatus.inLastNamedBlock,
       );
       expect(detail.blockContext!.reviewedBlockAppearances, 2);
+      expect(
+        detail.rationaleLines,
+        contains(
+          'The last started block used this hero in 2 of 5 review games.',
+        ),
+      );
     });
 
     test('marks when a hero was not in the last named block', () {
@@ -148,9 +178,11 @@ void main() {
       );
 
       expect(detail.blockContext!.trendStatus, HeroBlockTrendStatus.improved);
+      expect(detail.blockContext!.baselineWinRatePercentage, 50);
+      expect(detail.blockContext!.reviewedBlockWinRatePercentage, 100);
       expect(
         detail.blockContext!.trendDetail,
-        'Compared against the last checkpoint window.',
+        'Win rate moved from 50% before the block to 100% in the review window.',
       );
     });
 
@@ -171,6 +203,8 @@ void main() {
         detail.blockContext!.trendStatus,
         HeroBlockTrendStatus.notEnoughHistory,
       );
+      expect(detail.blockContext!.baselineWinRatePercentage, 100);
+      expect(detail.blockContext!.reviewedBlockWinRatePercentage, 100);
       expect(
         detail.blockContext!.trendDetail,
         'Need at least 2 baseline and 2 block games on this hero.',
@@ -263,11 +297,11 @@ void main() {
       expect(detail.metaSummary.isStale, isTrue);
       expect(
         detail.metaSummary.staleWarning,
-        'Meta reference is outdated for the current patch.',
+        'Patch 7.41a is behind supported patch 7.41b.',
       );
       expect(
         detail.metaSummary.interpretation,
-        'Lean on your own sample until meta data is refreshed.',
+        'Lean on your own sample until the local patch reference is refreshed.',
       );
     });
   });

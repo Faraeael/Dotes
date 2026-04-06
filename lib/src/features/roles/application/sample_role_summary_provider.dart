@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../meta_reference/application/hero_meta_reference_providers.dart';
 import '../../player_import/application/imported_player_provider.dart';
 import '../domain/models/sample_role_summary.dart';
 import '../domain/services/role_inference_service.dart';
@@ -15,5 +16,13 @@ final sampleRoleSummaryProvider = Provider<SampleRoleSummary?>((ref) {
   }
 
   final roleInferenceService = ref.watch(roleInferenceServiceProvider);
-  return roleInferenceService.summarizeSample(importedPlayer.recentMatches);
+  final heroMetaReferenceRepository = ref.watch(
+    heroMetaReferenceRepositoryProvider,
+  );
+  return roleInferenceService.summarizeSample(
+    importedPlayer.recentMatches,
+    heroRoleHintLabelForHero: (heroId) {
+      return heroMetaReferenceRepository.loadForHero(heroId)?.roleLabel;
+    },
+  );
 });

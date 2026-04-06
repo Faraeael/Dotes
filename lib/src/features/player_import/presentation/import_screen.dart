@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/router/app_router.dart';
+import '../../dashboard/application/dashboard_onboarding_providers.dart';
+import '../../dashboard/presentation/widgets/coaching_guide_dialog.dart';
 import '../application/player_import_controller.dart';
 import '../application/saved_accounts_providers.dart';
 import '../domain/models/demo_player_scenario.dart';
 import '../domain/models/saved_account_entry.dart';
+import 'widgets/account_id_help_dialog.dart';
 import 'widgets/demo_scenario_section.dart';
 import 'widgets/player_id_form.dart';
 import 'widgets/saved_accounts_section.dart';
@@ -79,6 +82,17 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
   }
 
+  Future<void> _showCoachingGuide() async {
+    await CoachingGuideDialog.show(
+      context,
+      guide: ref.read(dashboardOnboardingGuideProvider),
+    );
+  }
+
+  Future<void> _showAccountIdHelp() async {
+    await AccountIdHelpDialog.show(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(playerImportControllerProvider);
@@ -121,6 +135,8 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                           .read(playerImportControllerProvider.notifier)
                           .updatePlayerId,
                       onSubmit: _submit,
+                      onShowHowItWorks: _showCoachingGuide,
+                      onShowAccountIdHelp: _showAccountIdHelp,
                     ),
                     const SizedBox(height: 16),
                     DemoScenarioSection(

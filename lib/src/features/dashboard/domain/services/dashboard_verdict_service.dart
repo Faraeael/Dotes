@@ -31,6 +31,17 @@ class DashboardVerdictService {
 
     final biggestLeak = _pickStrongest(leakCandidates);
     final biggestEdge = _pickStrongest(edgeCandidates);
+    final confidenceLabel = _confidenceLabel(
+      nextGamesFocus: nextGamesFocus,
+      previousCheckpoint: previousCheckpoint,
+      progressCheck: progressCheck,
+    );
+    final reasonLabel = _reasonLabel(
+      insights: insights,
+      nextGamesFocus: nextGamesFocus,
+      previousCheckpoint: previousCheckpoint,
+      progressCheck: progressCheck,
+    );
 
     return DashboardVerdict(
       biggestLeak: biggestLeak == null
@@ -42,7 +53,54 @@ class DashboardVerdictService {
       fallbackMessage: biggestLeak == null && biggestEdge == null
           ? 'Current sample is still too noisy for a strong verdict.'
           : null,
+      confidenceLabel: confidenceLabel,
+      reasonLabel: reasonLabel,
     );
+  }
+
+  String _confidenceLabel({
+    required NextGamesFocus? nextGamesFocus,
+    required CoachingCheckpoint? previousCheckpoint,
+    required ProgressCheck? progressCheck,
+  }) {
+    if (nextGamesFocus?.sourceType == CoachingInsightType.limitedConfidence) {
+      return 'Limited confidence';
+    }
+
+    if (previousCheckpoint != null && progressCheck?.isReady == true) {
+      return 'Stronger read';
+    }
+
+    if (previousCheckpoint != null) {
+      return 'Sample-backed read';
+    }
+
+    return 'Conservative read';
+  }
+
+  String _reasonLabel({
+    required List<CoachingInsight> insights,
+    required NextGamesFocus? nextGamesFocus,
+    required CoachingCheckpoint? previousCheckpoint,
+    required ProgressCheck? progressCheck,
+  }) {
+    if (nextGamesFocus?.sourceType == CoachingInsightType.limitedConfidence) {
+      return 'Current sample is still noisy, so the verdict is directional rather than final.';
+    }
+
+    if (previousCheckpoint != null && progressCheck?.isReady == true) {
+      return 'This verdict can compare the current sample against your last started block and recent trend changes.';
+    }
+
+    if (previousCheckpoint != null) {
+      return 'This verdict can compare the current sample against your last started block, but the read still stays conservative.';
+    }
+
+    if (insights.isNotEmpty) {
+      return 'This verdict is based on your strongest recent-match signal and stays conservative when the sample is broad.';
+    }
+
+    return 'There is only a light signal right now, so the app avoids stronger claims.';
   }
 
   List<_VerdictCandidate> _followThroughLeakCandidates(
@@ -59,20 +117,20 @@ class DashboardVerdictService {
       return switch (followThroughCheck.status!) {
         FocusFollowThroughStatus.onTrack => const [],
         FocusFollowThroughStatus.mixed => const [
-            _VerdictCandidate(
-              message:
-                  'You only partly stayed inside the last recommended hero block.',
-              priority: 85,
-              order: 0,
-            ),
-          ],
+          _VerdictCandidate(
+            message:
+                'You only partly stayed inside the last recommended hero block.',
+            priority: 85,
+            order: 0,
+          ),
+        ],
         FocusFollowThroughStatus.offTrack => const [
-            _VerdictCandidate(
-              message: 'You drifted outside the last recommended hero block.',
-              priority: 100,
-              order: 0,
-            ),
-          ],
+          _VerdictCandidate(
+            message: 'You drifted outside the last recommended hero block.',
+            priority: 100,
+            order: 0,
+          ),
+        ],
       };
     }
 
@@ -137,27 +195,27 @@ class DashboardVerdictService {
 
     return switch (previousCheckpoint.topInsightType) {
       CoachingInsightType.earlyDeathRisk => const [
-          _VerdictCandidate(
-            message: 'Deaths are moving closer to the current focus target.',
-            priority: 90,
-            order: 1,
-          ),
-        ],
+        _VerdictCandidate(
+          message: 'Deaths are moving closer to the current focus target.',
+          priority: 90,
+          order: 1,
+        ),
+      ],
       CoachingInsightType.heroPoolSpread => const [
-          _VerdictCandidate(
-            message: 'You kept the recent hero pool tighter.',
-            priority: 85,
-            order: 2,
-          ),
-        ],
+        _VerdictCandidate(
+          message: 'You kept the recent hero pool tighter.',
+          priority: 85,
+          order: 2,
+        ),
+      ],
       CoachingInsightType.weakRecentTrend ||
       CoachingInsightType.specializationRecommendation => const [
-          _VerdictCandidate(
-            message: 'You held a cleaner coaching block.',
-            priority: 80,
-            order: 3,
-          ),
-        ],
+        _VerdictCandidate(
+          message: 'You held a cleaner coaching block.',
+          priority: 80,
+          order: 3,
+        ),
+      ],
       CoachingInsightType.comfortHeroDependence ||
       CoachingInsightType.limitedConfidence ||
       null => const [],
@@ -176,33 +234,33 @@ class DashboardVerdictService {
 
     return switch (topInsight.type) {
       CoachingInsightType.earlyDeathRisk => [
-          _VerdictCandidate(
-            message: 'Deaths are still too high.',
-            priority: priority,
-            order: 10,
-          ),
-        ],
+        _VerdictCandidate(
+          message: 'Deaths are still too high.',
+          priority: priority,
+          order: 10,
+        ),
+      ],
       CoachingInsightType.heroPoolSpread => [
-          _VerdictCandidate(
-            message: 'Your recent pool is still too wide.',
-            priority: priority,
-            order: 11,
-          ),
-        ],
+        _VerdictCandidate(
+          message: 'Your recent pool is still too wide.',
+          priority: priority,
+          order: 11,
+        ),
+      ],
       CoachingInsightType.weakRecentTrend => [
-          _VerdictCandidate(
-            message: 'Recent results are still below break-even.',
-            priority: priority,
-            order: 12,
-          ),
-        ],
+        _VerdictCandidate(
+          message: 'Recent results are still below break-even.',
+          priority: priority,
+          order: 12,
+        ),
+      ],
       CoachingInsightType.specializationRecommendation => [
-          _VerdictCandidate(
-            message: 'Your sample is still too broad to read cleanly.',
-            priority: priority,
-            order: 13,
-          ),
-        ],
+        _VerdictCandidate(
+          message: 'Your sample is still too broad to read cleanly.',
+          priority: priority,
+          order: 13,
+        ),
+      ],
       CoachingInsightType.comfortHeroDependence ||
       CoachingInsightType.limitedConfidence => const [],
     };
@@ -215,7 +273,8 @@ class DashboardVerdictService {
       return const [];
     }
 
-    if (comfortCore.conclusionType == ComfortCoreConclusionType.successInsideCore ||
+    if (comfortCore.conclusionType ==
+            ComfortCoreConclusionType.successInsideCore ||
         comfortCore.conclusionType == ComfortCoreConclusionType.outsideWeaker) {
       return const [
         _VerdictCandidate(
@@ -229,7 +288,9 @@ class DashboardVerdictService {
     return const [];
   }
 
-  List<_VerdictCandidate> _progressLeakCandidates(ProgressCheck? progressCheck) {
+  List<_VerdictCandidate> _progressLeakCandidates(
+    ProgressCheck? progressCheck,
+  ) {
     if (progressCheck == null || !progressCheck.isReady) {
       return const [];
     }
@@ -260,7 +321,9 @@ class DashboardVerdictService {
     ];
   }
 
-  List<_VerdictCandidate> _progressEdgeCandidates(ProgressCheck? progressCheck) {
+  List<_VerdictCandidate> _progressEdgeCandidates(
+    ProgressCheck? progressCheck,
+  ) {
     if (progressCheck == null || !progressCheck.isReady) {
       return const [];
     }
@@ -306,25 +369,21 @@ class DashboardVerdictService {
   }
 
   _VerdictCandidate? _pickStrongest(List<_VerdictCandidate> candidates) {
-    return candidates.fold<_VerdictCandidate?>(
-      null,
-      (best, candidate) {
-        if (best == null) {
-          return candidate;
-        }
+    return candidates.fold<_VerdictCandidate?>(null, (best, candidate) {
+      if (best == null) {
+        return candidate;
+      }
 
-        if (candidate.priority > best.priority) {
-          return candidate;
-        }
+      if (candidate.priority > best.priority) {
+        return candidate;
+      }
 
-        if (candidate.priority == best.priority &&
-            candidate.order < best.order) {
-          return candidate;
-        }
+      if (candidate.priority == best.priority && candidate.order < best.order) {
+        return candidate;
+      }
 
-        return best;
-      },
-    );
+      return best;
+    });
   }
 }
 

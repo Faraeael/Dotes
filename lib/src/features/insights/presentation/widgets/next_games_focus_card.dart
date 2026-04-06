@@ -22,9 +22,19 @@ class NextGamesFocusCard extends StatelessWidget {
           children: [
             Text(focus.title, style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
-            AppStatusBadge(
-              label: focus.sourceLabel,
-              tone: _toneForSource(focus.sourceLabel),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                AppStatusBadge(
+                  label: focus.sourceLabel,
+                  tone: _toneForSource(focus.sourceLabel),
+                ),
+                AppStatusBadge(
+                  label: focus.confidenceLabel,
+                  tone: _toneForConfidence(focus.confidenceLabel),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             Text(
@@ -33,6 +43,15 @@ class NextGamesFocusCard extends StatelessWidget {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
+            if (focus.reasonLabel != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Why this focus: ${focus.reasonLabel!}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
@@ -57,6 +76,19 @@ class NextGamesFocusCard extends StatelessWidget {
     }
 
     if (lower.contains('strong') || lower.contains('comfort')) {
+      return AppStatusTone.positive;
+    }
+
+    return AppStatusTone.info;
+  }
+
+  AppStatusTone _toneForConfidence(String confidenceLabel) {
+    final lower = confidenceLabel.toLowerCase();
+    if (lower.contains('low') || lower.contains('limited')) {
+      return AppStatusTone.warning;
+    }
+
+    if (lower.contains('high') || lower.contains('strong')) {
       return AppStatusTone.positive;
     }
 

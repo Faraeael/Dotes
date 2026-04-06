@@ -12,48 +12,55 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('HeroCompareScreen actions', () {
-    testWidgets('promotes a compared hero into a partial block and switches to manual setup', (
-      tester,
-    ) async {
-      final repository = FakeTrainingPreferencesRepository(
-        storedValues: {
-          86745912: const TrainingPreferences(lockedHeroIds: [129]),
-        },
-      );
-      final container = ProviderContainer(
-        overrides: [
-          trainingPreferencesRepositoryProvider.overrideWithValue(repository),
-        ],
-      );
-      addTearDown(container.dispose);
+    testWidgets(
+      'promotes a compared hero into a partial block and switches to manual setup',
+      (tester) async {
+        final repository = FakeTrainingPreferencesRepository(
+          storedValues: {
+            86745912: const TrainingPreferences(lockedHeroIds: [129]),
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [
+            trainingPreferencesRepositoryProvider.overrideWithValue(repository),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      container.read(importedPlayerProvider.notifier).state = _importedPlayer();
-      await container.read(trainingPreferencesControllerProvider).loadForAccount(86745912);
+        container.read(importedPlayerProvider.notifier).state =
+            _importedPlayer();
+        await container
+            .read(trainingPreferencesControllerProvider)
+            .loadForAccount(86745912);
 
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const MaterialApp(
-            home: HeroCompareScreen(primaryHeroId: 129, secondaryHeroId: 28),
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const MaterialApp(
+              home: HeroCompareScreen(primaryHeroId: 129, secondaryHeroId: 28),
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Mars'), findsWidgets);
-      expect(find.text('Current training block'), findsOneWidget);
-      expect(find.text('Follow app read'), findsOneWidget);
+        expect(find.text('Mars'), findsWidgets);
+        expect(find.text('Current training block'), findsOneWidget);
+        expect(find.text('Follow app read'), findsOneWidget);
 
-      await tester.ensureVisible(find.text('Use Slardar in block'));
-      await tester.tap(find.text('Use Slardar in block'));
-      await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('Use Slardar in block'));
+        await tester.tap(find.text('Use Slardar in block'));
+        await tester.pumpAndSettle();
 
-      expect(repository.savedValues[86745912]!.normalizedLockedHeroIds, [129, 28]);
-      expect(
-        repository.savedValues[86745912]!.coachingMode,
-        TrainingCoachingMode.preferManualSetup,
-      );
-    });
+        expect(repository.savedValues[86745912]!.normalizedLockedHeroIds, [
+          129,
+          28,
+        ]);
+        expect(
+          repository.savedValues[86745912]!.coachingMode,
+          TrainingCoachingMode.preferManualSetup,
+        );
+      },
+    );
 
     testWidgets('replaces a hero in a full block from compare', (tester) async {
       final repository = FakeTrainingPreferencesRepository(
@@ -72,7 +79,9 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(importedPlayerProvider.notifier).state = _importedPlayer();
-      await container.read(trainingPreferencesControllerProvider).loadForAccount(86745912);
+      await container
+          .read(trainingPreferencesControllerProvider)
+          .loadForAccount(86745912);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -84,13 +93,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Replace current block hero with Slardar'));
+      await tester.ensureVisible(
+        find.text('Replace current block hero with Slardar'),
+      );
       await tester.tap(find.text('Replace current block hero with Slardar'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Dawnbreaker'));
       await tester.pumpAndSettle();
 
-      expect(repository.savedValues[86745912]!.normalizedLockedHeroIds, [129, 28]);
+      expect(repository.savedValues[86745912]!.normalizedLockedHeroIds, [
+        129,
+        28,
+      ]);
     });
 
     testWidgets('renders current-block hero state clearly', (tester) async {
@@ -110,7 +124,9 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(importedPlayerProvider.notifier).state = _importedPlayer();
-      await container.read(trainingPreferencesControllerProvider).loadForAccount(86745912);
+      await container
+          .read(trainingPreferencesControllerProvider)
+          .loadForAccount(86745912);
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -125,6 +141,44 @@ void main() {
       expect(find.text('Mars already in block'), findsOneWidget);
       expect(find.text('Already in block'), findsOneWidget);
       expect(find.text('Mars'), findsWidgets);
+    });
+
+    testWidgets('shows hero rationale in compare cards', (tester) async {
+      final repository = FakeTrainingPreferencesRepository(
+        storedValues: {
+          86745912: const TrainingPreferences(
+            coachingMode: TrainingCoachingMode.preferManualSetup,
+            lockedHeroIds: [129],
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          trainingPreferencesRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(importedPlayerProvider.notifier).state = _importedPlayer();
+      await container
+          .read(trainingPreferencesControllerProvider)
+          .loadForAccount(86745912);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: HeroCompareScreen(primaryHeroId: 129, secondaryHeroId: 28),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Why this hero'), findsNWidgets(2));
+      expect(
+        find.text('This hero is already inside your current named block.'),
+        findsOneWidget,
+      );
     });
   });
 }
@@ -180,8 +234,8 @@ class FakeTrainingPreferencesRepository
   FakeTrainingPreferencesRepository({
     Map<int, TrainingPreferences>? storedValues,
   }) : savedValues = Map<int, TrainingPreferences>.from(
-          storedValues ?? const {},
-        );
+         storedValues ?? const {},
+       );
 
   final Map<int, TrainingPreferences> savedValues;
 

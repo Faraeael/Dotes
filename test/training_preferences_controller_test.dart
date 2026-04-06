@@ -12,80 +12,125 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('TrainingPreferencesController', () {
-    test('saveForAccount does not overwrite new account state after a switch',
-        () async {
-      final saveCompleter = Completer<void>();
-      final repository = _SlowSaveTrainingPreferencesRepository(
-        saveCompleter: saveCompleter,
-        storedValues: {
-          86745912: const TrainingPreferences(),
-          2222: const TrainingPreferences(
-            coachingMode: TrainingCoachingMode.preferManualSetup,
-            lockedHeroIds: [129],
-          ),
-        },
-      );
-      final container = ProviderContainer(
-        overrides: [
-          trainingPreferencesRepositoryProvider.overrideWithValue(repository),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      // Load account A, then start saving a hero block change (in flight)
-      container.read(importedPlayerProvider.notifier).state =
-          _importedPlayer(accountId: 86745912);
-      await container
-          .read(trainingPreferencesControllerProvider)
-          .loadForAccount(86745912);
-
-      final saveFuture = container
-          .read(trainingPreferencesControllerProvider)
-          .saveForAccount(
-            86745912,
-            const TrainingPreferences(
+    test(
+      'saveForAccount does not overwrite new account state after a switch',
+      () async {
+        final saveCompleter = Completer<void>();
+        final repository = _SlowSaveTrainingPreferencesRepository(
+          saveCompleter: saveCompleter,
+          storedValues: {
+            86745912: const TrainingPreferences(),
+            2222: const TrainingPreferences(
               coachingMode: TrainingCoachingMode.preferManualSetup,
-              lockedHeroIds: [53],
+              lockedHeroIds: [129],
             ),
-          );
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [
+            trainingPreferencesRepositoryProvider.overrideWithValue(repository),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      // Switch to account B while A's save is still in flight
-      container.read(importedPlayerProvider.notifier).state =
-          _importedPlayer(accountId: 2222);
-      container.read(trainingPreferencesControllerProvider).clearSession();
-      await container
-          .read(trainingPreferencesControllerProvider)
-          .loadForAccount(2222);
+        // Load account A, then start saving a hero block change (in flight)
+        container.read(importedPlayerProvider.notifier).state = _importedPlayer(
+          accountId: 86745912,
+        );
+        await container
+            .read(trainingPreferencesControllerProvider)
+            .loadForAccount(86745912);
 
-      // Confirm account B is loaded correctly before A's save completes
-      expect(
-        container
-            .read(currentTrainingPreferencesProvider)
-            .normalizedLockedHeroIds,
-        [129],
-      );
+        final saveFuture = container
+            .read(trainingPreferencesControllerProvider)
+            .saveForAccount(
+              86745912,
+              const TrainingPreferences(
+                coachingMode: TrainingCoachingMode.preferManualSetup,
+                lockedHeroIds: [53],
+              ),
+            );
 
-      // Now let account A's save complete
-      saveCompleter.complete();
-      await saveFuture;
+        // Switch to account B while A's save is still in flight
+        container.read(importedPlayerProvider.notifier).state = _importedPlayer(
+          accountId: 2222,
+        );
+        container.read(trainingPreferencesControllerProvider).clearSession();
+        await container
+            .read(trainingPreferencesControllerProvider)
+            .loadForAccount(2222);
 
-      // Account B's loaded state must still be intact — not overwritten by A's save
-      expect(
-        container
-            .read(currentTrainingPreferencesProvider)
-            .normalizedLockedHeroIds,
-        [129],
-      );
-      expect(
-        container
-            .read(currentTrainingPreferencesProvider)
-            .coachingMode,
-        TrainingCoachingMode.preferManualSetup,
-      );
-    });
+        // Confirm account B is loaded correctly before A's save completes
+        expect(
+          container
+              .read(currentTrainingPreferencesProvider)
+              .normalizedLockedHeroIds,
+          [129],
+        );
 
-    test('saveForAccount updates state normally when account has not changed',
-        () async {
+        // Now let account A's save complete
+        saveCompleter.complete();
+        await saveFuture;
+
+        // Account B's loaded state must still be intact — not overwritten by A's save
+        expect(
+          container
+              .read(currentTrainingPreferencesProvider)
+              .normalizedLockedHeroIds,
+          [129],
+        );
+        expect(
+          container.read(currentTrainingPreferencesProvider).coachingMode,
+          TrainingCoachingMode.preferManualSetup,
+        );
+      },
+    );
+
+    test(
+      'saveForAccount updates state normally when account has not changed',
+      () async {
+        final repository = _SlowSaveTrainingPreferencesRepository(
+          saveCompleter: Completer()..complete(),
+          storedValues: {},
+        );
+        final container = ProviderContainer(
+          overrides: [
+            trainingPreferencesRepositoryProvider.overrideWithValue(repository),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        container.read(importedPlayerProvider.notifier).state = _importedPlayer(
+          accountId: 86745912,
+        );
+        await container
+            .read(trainingPreferencesControllerProvider)
+            .loadForAccount(86745912);
+
+        await container
+            .read(trainingPreferencesControllerProvider)
+            .saveForAccount(
+              86745912,
+              const TrainingPreferences(
+                coachingMode: TrainingCoachingMode.preferManualSetup,
+                lockedHeroIds: [28, 53],
+              ),
+            );
+
+        expect(
+          container
+              .read(currentTrainingPreferencesProvider)
+              .normalizedLockedHeroIds,
+          [28, 53],
+        );
+        expect(
+          container.read(currentTrainingPreferencesProvider).coachingMode,
+          TrainingCoachingMode.preferManualSetup,
+        );
+      },
+    );
+
+    test('saveForAccount keeps a per-account coaching note', () async {
       final repository = _SlowSaveTrainingPreferencesRepository(
         saveCompleter: Completer()..complete(),
         storedValues: {},
@@ -97,8 +142,9 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      container.read(importedPlayerProvider.notifier).state =
-          _importedPlayer(accountId: 86745912);
+      container.read(importedPlayerProvider.notifier).state = _importedPlayer(
+        accountId: 86745912,
+      );
       await container
           .read(trainingPreferencesControllerProvider)
           .loadForAccount(86745912);
@@ -109,19 +155,118 @@ void main() {
             86745912,
             const TrainingPreferences(
               coachingMode: TrainingCoachingMode.preferManualSetup,
-              lockedHeroIds: [28, 53],
+              coachingNote: 'Practice cleaner lane exits.',
             ),
           );
 
       expect(
-        container
-            .read(currentTrainingPreferencesProvider)
-            .normalizedLockedHeroIds,
-        [28, 53],
+        container.read(currentTrainingPreferencesProvider).trimmedCoachingNote,
+        'Practice cleaner lane exits.',
       );
+    });
+
+    test('saveForAccount keeps a per-account focus priority', () async {
+      final repository = _SlowSaveTrainingPreferencesRepository(
+        saveCompleter: Completer()..complete(),
+        storedValues: {},
+      );
+      final container = ProviderContainer(
+        overrides: [
+          trainingPreferencesRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(importedPlayerProvider.notifier).state = _importedPlayer(
+        accountId: 86745912,
+      );
+      await container
+          .read(trainingPreferencesControllerProvider)
+          .loadForAccount(86745912);
+
+      await container
+          .read(trainingPreferencesControllerProvider)
+          .saveForAccount(
+            86745912,
+            const TrainingPreferences(
+              coachingMode: TrainingCoachingMode.preferManualSetup,
+              focusPriority: TrainingFocusPriority.reduceDeaths,
+            ),
+          );
+
       expect(
-        container.read(currentTrainingPreferencesProvider).coachingMode,
-        TrainingCoachingMode.preferManualSetup,
+        container.read(currentTrainingPreferencesProvider).focusPriority,
+        TrainingFocusPriority.reduceDeaths,
+      );
+    });
+
+    test('saveForAccount keeps a per-account coaching style', () async {
+      final repository = _SlowSaveTrainingPreferencesRepository(
+        saveCompleter: Completer()..complete(),
+        storedValues: {},
+      );
+      final container = ProviderContainer(
+        overrides: [
+          trainingPreferencesRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(importedPlayerProvider.notifier).state = _importedPlayer(
+        accountId: 86745912,
+      );
+      await container
+          .read(trainingPreferencesControllerProvider)
+          .loadForAccount(86745912);
+
+      await container
+          .read(trainingPreferencesControllerProvider)
+          .saveForAccount(
+            86745912,
+            const TrainingPreferences(
+              coachingMode: TrainingCoachingMode.preferManualSetup,
+              coachingStyle: TrainingCoachingStyle.steady,
+            ),
+          );
+
+      expect(
+        container.read(currentTrainingPreferencesProvider).coachingStyle,
+        TrainingCoachingStyle.steady,
+      );
+    });
+
+    test('saveForAccount keeps a per-account queue preference', () async {
+      final repository = _SlowSaveTrainingPreferencesRepository(
+        saveCompleter: Completer()..complete(),
+        storedValues: {},
+      );
+      final container = ProviderContainer(
+        overrides: [
+          trainingPreferencesRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(importedPlayerProvider.notifier).state = _importedPlayer(
+        accountId: 86745912,
+      );
+      await container
+          .read(trainingPreferencesControllerProvider)
+          .loadForAccount(86745912);
+
+      await container
+          .read(trainingPreferencesControllerProvider)
+          .saveForAccount(
+            86745912,
+            const TrainingPreferences(
+              coachingMode: TrainingCoachingMode.preferManualSetup,
+              queuePreference: TrainingQueuePreference.partyOnly,
+            ),
+          );
+
+      expect(
+        container.read(currentTrainingPreferencesProvider).queuePreference,
+        TrainingQueuePreference.partyOnly,
       );
     });
   });
@@ -158,8 +303,8 @@ class _SlowSaveTrainingPreferencesRepository
     required this.saveCompleter,
     Map<int, TrainingPreferences>? storedValues,
   }) : _storedValues = Map<int, TrainingPreferences>.from(
-          storedValues ?? const {},
-        );
+         storedValues ?? const {},
+       );
 
   final Completer<void> saveCompleter;
   final Map<int, TrainingPreferences> _storedValues;

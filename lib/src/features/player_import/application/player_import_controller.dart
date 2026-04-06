@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/result/result.dart';
 import '../../checkpoints/application/coaching_checkpoint_providers.dart';
+import '../../dashboard/application/saved_block_summary_providers.dart';
 import '../../tester_feedback/application/tester_feedback_providers.dart';
 import '../../training_preferences/application/training_preferences_providers.dart';
 import '../data/demo/demo_player_scenarios.dart';
@@ -10,8 +11,8 @@ import '../domain/models/demo_player_scenario.dart';
 import '../domain/models/imported_player_data.dart';
 import '../domain/models/saved_account_entry.dart';
 import '../domain/repositories/player_import_repository.dart';
-import 'saved_accounts_providers.dart';
 import 'imported_player_provider.dart';
+import 'saved_accounts_providers.dart';
 
 final demoPlayerScenariosProvider = Provider<List<DemoPlayerScenario>>((ref) {
   return demoPlayerScenarios;
@@ -34,6 +35,7 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
     _clearCheckpointSession();
     _clearTesterFeedbackSession();
     _clearTrainingPreferencesSession();
+    _clearSavedBlockSummarySession();
     _clearImportedPlayer();
     state = const PlayerImportState();
   }
@@ -56,6 +58,7 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
     _clearCheckpointSession();
     _clearTesterFeedbackSession();
     _clearTrainingPreferencesSession();
+    _clearSavedBlockSummarySession();
     _clearImportedPlayer();
 
     final errorMessage = _validatePlayerId(trimmed);
@@ -111,6 +114,9 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
               await _ref
                   .read(trainingPreferencesControllerProvider)
                   .loadForAccount(importedPlayer.profile.accountId);
+              await _ref
+                  .read(savedBlockSummaryControllerProvider)
+                  .loadForAccount(importedPlayer.profile.accountId);
               try {
                 await _ref
                     .read(savedAccountsControllerProvider.notifier)
@@ -128,8 +134,7 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
     } catch (_) {
       state = state.copyWith(
         playerId: trimmed,
-        errorMessage:
-            'Something went wrong while importing this player.',
+        errorMessage: 'Something went wrong while importing this player.',
         isSubmitting: false,
       );
       return false;
@@ -144,6 +149,7 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
     _clearCheckpointSession();
     _clearTesterFeedbackSession();
     _clearTrainingPreferencesSession();
+    _clearSavedBlockSummarySession();
     _clearImportedPlayer();
     state = state.copyWith(
       playerId: '',
@@ -170,7 +176,14 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
             scenario.importedPlayer.profile.accountId,
             scenario.trainingPreferences,
           );
-      _ref.read(importedPlayerProvider.notifier).state = scenario.importedPlayer;
+      await _ref
+          .read(savedBlockSummaryControllerProvider)
+          .loadSeededForAccount(
+            scenario.importedPlayer.profile.accountId,
+            const [],
+          );
+      _ref.read(importedPlayerProvider.notifier).state =
+          scenario.importedPlayer;
       state = const PlayerImportState();
       return true;
     } catch (_) {
@@ -207,18 +220,26 @@ class PlayerImportController extends StateNotifier<PlayerImportState> {
     _ref.read(trainingPreferencesControllerProvider).clearSession();
   }
 
+  void _clearSavedBlockSummarySession() {
+    _ref.read(savedBlockSummaryControllerProvider).clearSession();
+  }
+
   String? _validatePlayerId(String value) {
     if (value.isEmpty) {
-      return 'Enter a player or account ID.';
+      return 'Enter the numeric account ID from the player profile you want to review.';
     }
 
     final digitsOnly = RegExp(r'^\d+$');
     if (!digitsOnly.hasMatch(value)) {
-      return 'Use digits only.';
+      return 'Use digits only for the account ID, not a display name or profile link.';
     }
 
-    if (value.length < 4 || value.length > 20) {
-      return 'Use 4 to 20 digits.';
+    if (value.length < 4) {
+      return 'That account ID looks too short. Enter at least 4 digits.';
+    }
+
+    if (value.length > 20) {
+      return 'That account ID looks too long. Use 20 digits or fewer.';
     }
 
     return null;
@@ -243,7 +264,7 @@ class PlayerImportState {
   }) {
     return PlayerImportState(
       playerId: playerId ?? this.playerId,
-      errorMessage: errorMessage,
+      errorMessage: errorMessage ?? this.errorMessage,
       isSubmitting: isSubmitting ?? this.isSubmitting,
     );
   }

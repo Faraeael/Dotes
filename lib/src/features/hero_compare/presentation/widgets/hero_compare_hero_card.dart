@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/widgets/app_reason_list.dart';
 import '../../../../app/widgets/app_metric_grid.dart';
 import '../../../../app/widgets/app_metric_tile.dart';
 import '../../../../app/widgets/app_status_badge.dart';
@@ -70,7 +71,8 @@ class _HeroCompareHeroCardState extends State<HeroCompareHeroCard> {
                 ),
                 AppMetricTile(
                   label: 'Meta',
-                  value: widget.detail.metaSummary.reference?.tier.label ??
+                  value:
+                      widget.detail.metaSummary.reference?.tier.label ??
                       'No meta reference',
                 ),
               ],
@@ -89,8 +91,8 @@ class _HeroCompareHeroCardState extends State<HeroCompareHeroCard> {
                       : AppStatusTone.neutral,
                 ),
                 _statusBadge(
-                  label: widget.detail.tags
-                          .contains(HeroDetailTag.inCurrentPlan)
+                  label:
+                      widget.detail.tags.contains(HeroDetailTag.inCurrentPlan)
                       ? 'In current plan'
                       : 'Outside current plan',
                   tone: widget.detail.tags.contains(HeroDetailTag.inCurrentPlan)
@@ -110,16 +112,26 @@ class _HeroCompareHeroCardState extends State<HeroCompareHeroCard> {
                 'Block context: ${widget.detail.blockContext!.lastPlanStatus.label}. ${widget.detail.blockContext!.trendStatus.label}.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Before block ${_percentageLabel(widget.detail.blockContext!.baselineWinRatePercentage)} -> in block ${_percentageLabel(widget.detail.blockContext!.reviewedBlockWinRatePercentage)}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
+            const SizedBox(height: 12),
+            Text(
+              'Why this hero',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            AppReasonList(reasons: widget.detail.rationaleLines),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: FilledButton.tonal(
                 onPressed: _isSaving ? null : _handlePressed,
                 child: Text(
-                  _isSaving
-                      ? 'Saving...'
-                      : widget.blockAction.actionLabel,
+                  _isSaving ? 'Saving...' : widget.blockAction.actionLabel,
                 ),
               ),
             ),
@@ -129,10 +141,11 @@ class _HeroCompareHeroCardState extends State<HeroCompareHeroCard> {
     );
   }
 
-  Widget _statusBadge({
-    required String label,
-    required AppStatusTone tone,
-  }) {
+  Widget _statusBadge({required String label, required AppStatusTone tone}) {
     return AppStatusBadge(label: label, tone: tone);
+  }
+
+  String _percentageLabel(int? value) {
+    return value == null ? '-' : '$value%';
   }
 }
