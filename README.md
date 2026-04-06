@@ -112,6 +112,7 @@ The repo follows a feature-first structure:
 
 ## Important Docs
 
+- [How To Use Dotes](docs/how_to_use_dotes.md)
 - [Next Step Plan](docs/next_step_plan.md)
 - [Role Read Architecture](docs/role_read_architecture.md)
 - [MVP Playtest Script](docs/mvp_playtest_script.md)
