@@ -8,6 +8,7 @@ This plan turns the current project assessment into a practical execution backlo
 - Sprint 2 status: Done
 - Sprint 3 status: Done
 - Phase 4 status: Done
+- Phase 5 status: Done
 - Last updated: 2026-04-06
 
 Completed in Sprint 1:
@@ -27,6 +28,10 @@ Completed in Sprint 2:
 - Tightened import failure messages for not found, timeout, network, and rate-limit cases.
 - Added repository-level tests for import failure mapping and controller-level regression coverage.
 - Added provider-level regression coverage for completed-block re-import review and end summary behavior.
+- Integrated rank-based tone switching (Introductory, Standard, Advanced) into the coaching engine.
+- Implemented dynamic session block sizes (5-10 games) scaled by play frequency.
+- Updated UI summary surfaces to display rank and play cadence context.
+- Verified all regressions with 271+ passing tests.
 
 Still next:
 
@@ -35,8 +40,8 @@ Still next:
 The app already has a working MVP coaching loop:
 
 1. Import a Dota account.
-2. Read a coaching verdict and session plan.
-3. Start a 5-game block.
+2. Read a coaching verdict and session plan (now personalized by rank and play cadence).
+3. Start a 5-to-10 game block.
 4. Re-import after the block.
 5. Review and export the result.
 

@@ -4,7 +4,7 @@ Dotes works best when you use it as a short coaching loop, not as a general stat
 
 The core loop is:
 
-`import -> read coaching -> start block -> play 5 games -> re-import -> review -> save/share`
+`import -> read coaching -> start block -> play your session games (5-10) -> re-import -> review -> save/share`
 
 ## What To Do
 
@@ -17,19 +17,19 @@ You can also:
 - reopen a saved account
 - use a demo scenario if you are testing the app
 
-After import, Dotes reads your recent public match sample and builds a conservative coaching view from it.
+After import, Dotes reads your recent public match sample and builds a personalized coaching view based on your rank and play cadence.
 
 ### 2. Read the dashboard
 
 Once your account loads, the dashboard gives you the main coaching surfaces:
 
 - `Verdict`: the clearest current leak or edge
-- `Next 5 games focus`: the simplest coaching recommendation right now
-- `Session plan`: the block you should follow next
+- `Next session focus`: the simplest coaching recommendation right now
+- `Session plan`: the block you should follow next (usually the next 5 to 10 games)
 - `Training setup`: whether you are using app read or manual preferences
 - `Recent matches`: a compact recent-games list with `See more` when you want extra match context
 
-This is the point where you decide what your next 5-game block should be.
+This is the point where you decide what your next session block should be.
 
 ### 3. Check or edit your training setup
 
@@ -50,9 +50,9 @@ Use manual setup when it helps make the next block easier to follow and easier t
 
 When the plan looks right, start the block.
 
-The most important thing is to treat the next 5 games as one practice cycle. Try not to keep changing the plan between games.
+The most important thing is to treat the next session as one practice cycle. Try not to keep changing the plan between games.
 
-### 5. Play the next 5 games
+### 5. Play the next block of games
 
 For the block to stay useful, stick to the plan as closely as you can:
 
@@ -96,7 +96,7 @@ You can also add a short practice note before saving, so the summary keeps the o
 ## Best Practices
 
 - Use one block at a time instead of constantly re-optimizing.
-- Re-import after a real 5-game cycle, not after every single match.
+- Re-import after a real session cycle, not after every single match.
 - Prefer a smaller, cleaner block over a broad one.
 - Use manual setup when the app read is noisy, not by default every time.
 - Judge the block by follow-through and clarity, not only by win rate.

@@ -1,8 +1,8 @@
 # Dotes
 
-Dotes is a local-first Dota 2 performance coaching app built around short, reviewable 5-game training blocks.
+Dotes is a local-first Dota 2 performance coaching app built around short, reviewable session blocks (typically 5 to 10 games).
 
-It imports a player's recent OpenDota sample, turns that sample into a conservative coaching read, recommends a focused next block, lets the player start or restart that block, and later reviews the finished block after a re-import.
+It imports a player's recent OpenDota sample, turns that sample into a personalized coaching read based on their rank and play frequency, recommends a focused next block, lets the player start or restart that block, and later reviews the finished block after a re-import.
 
 The main loop is:
 
@@ -16,7 +16,7 @@ It is especially aimed at players who want help answering:
 
 - What should I queue next?
 - Which 1 to 2 heroes should I stay on for the next block?
-- Did the last 5 games actually follow the plan?
+- Did the last session block actually follow the plan?
 - What short summary would I share with a coach or teammate?
 
 ## Current MVP Scope
@@ -25,8 +25,8 @@ The current app supports:
 
 - Importing a real Dota account through OpenDota.
 - Loading local demo scenarios for testing the coaching loop.
-- Reading a coaching verdict from recent matches.
-- Building a focused 5-game session plan.
+- Reading a coaching verdict from recent matches with rank-aware tone switching.
+- Building a focused 5-to-10 game session plan based on play frequency.
 - Browsing the recent matches card in a compact view with a `See more` toggle for older games.
 - Starting or restarting a training block.
 - Re-importing later to review the finished block.
